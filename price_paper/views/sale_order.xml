@@ -1,6 +1,97 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
+
+        <record id="sale_line_accounting_differnce_form" model="ir.ui.view">
+            <field name="name">sale.order.line.accounting.difference</field>
+            <field name="model">sale.order.line</field>
+            <field name="priority">1000</field>
+            <field name="arch" type="xml">
+                <form string="Sales Order Item">
+                    <sheet>
+                        <div class="oe_title">
+                            <h1>
+                                <field name="display_name" readonly="1"/>
+                            </h1>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="order_id" readonly="1"/>
+                                <field name="product_id" readonly="1"/>
+                                <field name="name" readonly="1"/>
+                                <field name="product_uom_qty" readonly="1"/>
+                                <field name="qty_delivered" readonly="1"/>
+                                <field name="qty_invoiced"/>
+                                <field name="product_uom" readonly="1"/>
+                                <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"/>
+                                <field name="order_partner_id" invisible="1"/>
+                                <field name="display_type" invisible="1"/>
+                                <field name="product_updatable" invisible="1"/>
+                            </group>
+                            <group>
+                                <field name="price_unit" readonly="1"/>
+                                <field name="discount" groups="sale.group_discount_per_so_line" readonly="1"/>
+                                <field name="price_subtotal" widget="monetary"/>
+                                <field name="tax_id" widget="many2many_tags" readonly="1"/>
+                                <field name="price_tax" widget="monetary"/>
+                                <field name="price_total" widget="monetary"/>
+                                <field name="currency_id" invisible="1"/>
+                                <field name="accounting_difference" invisible="0"/>
+                                <field name="stock_journal_item" invisible="0"/>
+                                <field name="invoice_journal_item" invisible="0"/>
+                            </group>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="sale_line_accounting_difference_tree" model="ir.ui.view">
+            <field name="name">sale.order.line.price.paper</field>
+            <field name="model">sale.order.line</field>
+            <field name="priority">999</field>
+            <field name="arch" type="xml">
+                <tree string="Sales Order Lines" editable="top" create="0" edit="0">
+                    <field name="order_partner_id" readonly="1" string="CUSTOMER NAME"/>
+                    <field name="order_id" readonly="1" string="ORDER#"/>                
+                    <field name="product_id" readonly="1" string="ITEM #"/>                    
+                    <field name="product_uom_qty" readonly="1" string="QTY"/>
+                    <field name="accounting_difference"/>
+                </tree>
+            </field>
+        </record>
+        <record id="action_sale_line_accounting_differnce" model="ir.actions.act_window">
+            <field name="name">Sales Order Lines</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">sale.order.line</field>
+            <field name="view_mode">tree,form</field>
+            <!-- <field name="search_view_id" ref="sales_order_line_filter_report"/> -->
+            <!-- <field name="context">{'search_default_not_in_done': 1, 'search_default_group_by_order_id': 1}</field> -->
+        </record>
+
+        <record model="ir.actions.act_window.view" id="action_sale_line_reports_price_paper_tree">
+            <field name="sequence" eval="1"/>
+            <field name="view_mode">tree</field>
+            <field name="view_id" ref="sale_line_accounting_difference_tree"/>
+            <field name="act_window_id" ref="action_sale_line_accounting_differnce"/>
+        </record>
+
+        <record model="ir.actions.act_window.view" id="action_sale_line_reports_price_paper_form">
+            <field name="sequence" eval="2"/>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="sale_line_accounting_differnce_form"/>
+            <field name="act_window_id" ref="action_sale_line_accounting_differnce"/>
+        </record>
+
+        <menuitem id="menu_sales_lines_accounting"
+                  name="Accounting Difference"
+                  action="action_sale_line_accounting_differnce"
+                  parent="sale.sale_order_menu"
+                  groups="sales_team.group_sale_salesman"
+                  sequence="1010"
+        />
+
+
         <!--overriden(replaced) the whole delivery module inherrit for sales order form  this is done to ensure the get/set delivery views are available in confirmed state order-->
         <record id="delivery.view_order_form_with_carrier" model="ir.ui.view">
             <field name="name">delivery.sale.order.form.view.with_carrier</field>
