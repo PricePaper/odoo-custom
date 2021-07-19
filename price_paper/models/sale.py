@@ -891,7 +891,7 @@ class SaleOrderLine(models.Model):
         print(line_ids)
         return [('id', 'in', line_ids)]
 
-    @api.depends('move_ids', 'move_ids.state', 'invoice_lines', 'invoice_lines.state')
+    @api.depends('move_ids', 'invoice_lines')
     def _discrepancy(self):
         for line in self:
             line.accounting_difference = False
