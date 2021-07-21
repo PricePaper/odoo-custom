@@ -901,7 +901,8 @@ class SaleOrderLine(models.Model):
                 print(line,'==============>')
                 accounts = line.product_id.product_tmpl_id.get_product_accounts()
                 sjl = line.move_ids.mapped('account_move_ids').mapped('line_ids').filtered(lambda r: r.account_id.id == accounts['stock_output'].id)
-                ijl = line.invoice_lines.mapped('invoice_id').mapped('move_id').mapped('line_ids').filtered(lambda r: r.account_id.id == accounts['stock_output'].id and r.product_id.id == line.product_id.id)
+                ijl = line.invoice_lines.mapped('invoice_id').mapped('move_id').mapped('line_ids').filtered(lambda r: r.account_id.id == accounts['stock_output'].id \
+                    and r.product_id.id == line.product_id.id and r.quantity == line.quantity)
                 if round(abs(sum(sjl.mapped('balance')))) != round(abs(sum(ijl.mapped('balance')))):
                     line.accounting_difference = True
                     line.stock_journal_item = sjl
