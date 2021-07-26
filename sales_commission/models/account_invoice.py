@@ -48,7 +48,7 @@ class AccountInvoice(models.Model):
     def invoice_validate(self):
         res = super(AccountInvoice, self).invoice_validate()
         for invoice in self:
-            if invoice.check_bounce_invoice:
+            if invoice.check_bounce_invoice or invoice.residual == 0:
                 continue
             rec = invoice.sudo().calculate_commission()
         return res

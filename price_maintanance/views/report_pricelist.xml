@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <template id="report_pricelist_template">
+        <t t-call="web.html_container">
+            <div class="header">
+               <div class="row col-12" style="font-weight: bolder; padding-bottom:10px;">
+                   <div class="col-12" style="text-align:left;">
+                       <span t-field="o.name"/>
+                   </div>
+               </div>
+            </div>
+            <div class="article" t-att-data-oe-model="o and o._name" t-att-data-oe-id="o and o.id" t-att-data-oe-lang="o and o.env.context.get('lang')">
+            <div class="page">
+               <p style="page-break-after: always;"/>
+               <style>
+                  .o_main_table td {
+                      padding: 0.25rem;
+                      vertical-align: top;
+                      border-top: 1px solid black;
+                  }
+               </style>
+               <div class="col-12 text-left">
+                    <strong>Valid-Upto : </strong>
+                    <span t-field="o.expiry_date"/>
+               </div>
+               <div class="col-12 text-left">
+                    <strong>Partner    : </strong><strong t-esc="','.join([str(s.name) for s in o.partner_ids])"/>
+               </div>
+              <table class="table table-sm o_main_table">
+                  <tbody>
+                      <t t-set="index" t-value="1"/>
+                      <tr t-foreach="o.customer_product_price_ids" t-as="line"
+                          style="font-family: Roboto, Odoo Unicode Support Noto, sans-serif;font-size: 18px;">
+
+                          <td>
+                              <span t-esc="index"/>
+                          </td>
+                          <td>
+                              <span t-field="line.product_id.default_code"/>
+                          </td>
+                          <td>
+                              <span t-field="line.product_id.name"/>
+                          </td>
+                          <td>
+                              <span t-field="line.product_uom"/>
+                          </td>
+                          <td>
+                              <span t-field="line.price"/>
+                          </td>
+                          <t t-if="line">
+                              <t t-set="index" t-value="index + 1"/>
+                          </t>
+                      </tr>
+                  </tbody>
+              </table>
+            </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_pricelist">
+        <t t-foreach="docs" t-as="o">
+            <t t-call="price_maintanance.report_pricelist_template"/>
+        </t>
+    </template>
+
+</odoo>

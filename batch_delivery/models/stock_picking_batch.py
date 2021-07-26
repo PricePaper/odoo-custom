@@ -59,9 +59,8 @@ class StockPickingBatch(models.Model):
 
     @api.constrains('cheque_amount', 'cash_amount', 'actual_returned')
     def check_total_amount(self):
-            
+
         if float_round(self.cheque_amount + self.cash_amount, precision_digits=2) != float_round(self.actual_returned, precision_digits=2):
-            logging.error(('=============================>', float_round(self.cheque_amount + self.cash_amount, precision_digits=2), float_round(self.actual_returned, precision_digits=2), self))
             raise ValidationError(_('Total amount and sum of Cash and Check does not match'))
 
     def _compute_to_invoice_state(self):
@@ -423,6 +422,7 @@ class CashCollectedLines(models.Model):
     sequence = fields.Integer(string='Order')
     available_payment_method_ids = fields.One2many(comodel_name='account.payment', compute='_compute_available_payment_method_ids')
     billable_partner_ids = fields.Many2many('res.partner', compute='_compute_billable_partner_ids')
+    common_batch_id = fields.Many2one('batch.payment.common', string='Batch')
 
     @api.depends('batch_id')
     def _compute_billable_partner_ids(self):
@@ -526,6 +526,7 @@ class CashCollectedLines(models.Model):
                     'payment_method_id': payment_method.id,
                 })
                 # ob.payment_ids.action_validate_invoice_payment()
+
 
 CashCollectedLines()
 

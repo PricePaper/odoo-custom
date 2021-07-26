@@ -17,6 +17,7 @@ Custom module implemented for Purchase extension.
         'wizard/discount_check_generate.xml',
         'wizard/update_vendor_pricelist_view.xml',
         'wizard/add_sales_history_to_po.xml',
+        'wizard/change_product_uom.xml',
         'views/res_company.xml',
         'views/account_vendor_bill.xml',
         'views/payment_term.xml',

@@ -16,6 +16,8 @@ Custom module implemented for Price maintanance.
         'security/ir.model.access.csv',
         'data/data.xml',
         'wizard/price_edit_note.xml',
+        'views/report_pricelist.xml',
+        'views/report_template.xml',
         'views/price_edit_notes.xml',
         'views/res_company.xml',
         'views/product.xml',

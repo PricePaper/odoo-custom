@@ -293,6 +293,10 @@ class CostChange(models.Model):
     def check_if_zero_cost(self):
         if not self.price_change and self.product_id and self.product_id.type != 'service':
             raise ValidationError('Cost change field cannot be 0.00')
+        if self.product_id and self.old_cost == 0:
+            if self.update_standard_price or self.update_customer_pricelist:
+                raise ValidationError('Please update only cost since old cost of the product is zero.(Uncheck standard price, customer pricelist update check boxes.)')
+
 
 
 CostChange()

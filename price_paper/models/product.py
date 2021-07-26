@@ -18,6 +18,23 @@ OPERATORS = {
     '!=': py_operator.ne
 }
 
+class ProductTemplate(models.Model):
+    _inherit = 'product.template'
+
+    @api.multi
+    def _get_product_accounts(self):
+        """ Add the stock accounts related to product to the result of super()
+        @return: dictionary which contains information regarding stock accounts and super (income+expense accounts)
+        """
+        accounts = super(ProductTemplate, self)._get_product_accounts()
+        accounts.update({
+            'sc_liability_out': self.categ_id.sc_stock_liability_account_id
+        })
+        return accounts
+
+
+ProductTemplate()
+
 
 class ProductProduct(models.Model):
     _inherit = 'product.product'
@@ -70,12 +87,13 @@ class ProductProduct(models.Model):
     def copy(self, default=None):
 
         res = super(ProductProduct, self).copy(default)
-        res.standard_price = self.standard_price
-        #Duplicate price_list line
-        lines = self.env['customer.product.price'].search([('product_id', '=', self.id)])
-        default_1 = {'product_id': res.id}
-        for line in lines:
-            new_line = line.copy(default=default_1)
+        if not self._context.get('from_change_uom'):
+            res.standard_price = self.standard_price
+            #Duplicate price_list line
+            lines = self.env['customer.product.price'].search([('product_id', '=', self.id)])
+            default_1 = {'product_id': res.id}
+            for line in lines:
+                new_line = line.copy(default=default_1)
         return res
 
     @api.model
@@ -92,6 +110,77 @@ class ProductProduct(models.Model):
                     res['arch'] = etree.tostring(doc)
                 return res
         return res
+
+    @api.model
+    def _anglo_saxon_sale_move_lines(self, name, product, uom, qty, price_unit, currency=False, amount_currency=False,
+                                     fiscal_position=False, account_analytic=False, analytic_tags=False):
+        """Prepare dicts describing new journal COGS journal items for a product sale.
+
+        Returns a dict that should be passed to `_convert_prepared_anglosaxon_line()` to
+        obtain the creation value for the new journal items.
+
+        :param Model product: a product.product record of the product being sold
+        :param Model uom: a product.uom record of the UoM of the sale line
+        :param Integer qty: quantity of the product being sold
+        :param Integer price_unit: unit price of the product being sold
+        :param Model currency: a res.currency record from the order of the product being sold
+        :param Interger amount_currency: unit price in the currency from the order of the product being sold
+        :param Model fiscal_position: a account.fiscal.position record from the order of the product being sold
+        :param Model account_analytic: a account.account.analytic record from the line of the product being sold
+        """
+        if not self._context.get('sc_move', False):
+            return super(ProductProduct, self)._anglo_saxon_sale_move_lines(
+                name, product, uom, qty,
+                price_unit, currency, amount_currency,
+                fiscal_position, account_analytic, analytic_tags
+            )
+
+        if (product.valuation == 'real_time'
+                and (product.type == 'product' or (product.type == 'consu' and product._is_phantom_bom()))):
+            accounts = product.product_tmpl_id.get_product_accounts(fiscal_pos=fiscal_position)
+            # debit account dacc will be the output account
+            if not accounts['sc_liability_out']:
+                raise UserError(
+                    _('Cannot find a SC Stock Liability Account in product category: %s' % product.categ_id.name))
+            dacc = accounts['sc_liability_out'].id
+            # credit account cacc will be the expense account
+            cacc = accounts['expense'].id
+            if self._context.get('sc_move', '') == 'sc_order':
+                #if it is storage order reverse the move lines
+                dacc = accounts['stock_output'].id
+                cacc = accounts['sc_liability_out'].id
+            if dacc and cacc:
+                return [
+                    {
+                        'type': 'src',
+                        'name': name[:64],
+                        'price_unit': price_unit,
+                        'quantity': qty,
+                        'price': price_unit * qty,
+                        'currency_id': currency and currency.id,
+                        'amount_currency': amount_currency,
+                        'account_id': dacc,
+                        'product_id': product.id,
+                        'uom_id': uom.id,
+                    },
+
+                    {
+                        'type': 'src',
+                        'name': name[:64],
+                        'price_unit': price_unit,
+                        'quantity': qty,
+                        'price': -1 * price_unit * qty,
+                        'currency_id': currency and currency.id,
+                        'amount_currency': -1 * amount_currency,
+                        'account_id': cacc,
+                        'product_id': product.id,
+                        'uom_id': uom.id,
+                        'account_analytic_id': account_analytic and account_analytic.id,
+                        'analytic_tag_ids': analytic_tags and analytic_tags.ids and [
+                            (6, 0, analytic_tags.ids)] or False,
+                    },
+                ]
+        return []
 
     @api.multi
     @api.depends('qty_available', 'orderpoint_ids.product_max_qty', 'orderpoint_ids.product_min_qty')

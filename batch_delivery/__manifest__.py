@@ -13,7 +13,6 @@ This module sets up the batch delivery process for price paper.
     'author': 'Confianz Global',
     'website': 'http://confianzit.com',
     'images': [],
-
     'data': [
         'data/data.xml',
         'wizard/assign_route_wizard_view.xml',
@@ -44,6 +43,7 @@ This module sets up the batch delivery process for price paper.
         'views/website_asset.xml',
         'security/price_paper_security.xml',
         'security/ir.model.access.csv',
+        "views/batch_payment_common.xml"
     ],
 
     'depends': [

@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
+         <template id="report_ppt_followup_filter_info_template_inherit" inherit_id="account_reports.followup_filter_info_template">
+            <xpath expr="//div/div/div" position="attributes">
+                <attribute name="class">col-5</attribute>
+            </xpath>
+        </template>
 
         <record id="account_payment_term_line_tree_pricepaper" model="ir.ui.view">
             <field name="name">account.payment.term.line.tree.pricepaper</field>
@@ -24,6 +29,16 @@
             </field>
         </record>
 
+        <record id="view_account_invoice_supplier_form_form_inherit_price_paper_storage_contract" model="ir.ui.view">
+            <field name="name">account.invoice.inherited.form</field>
+            <field name="model">account.invoice</field>
+            <field name="inherit_id" ref="account.invoice_supplier_form"/>
+            <field name="arch" type="xml">
+                 <xpath expr="//form/sheet/notebook/page/field[@name='invoice_line_ids']/tree/field[@name='price_subtotal']" position="before">
+                    <field name="is_storage_contract" invisible="1"/>
+                </xpath>
+            </field>
+        </record>
         <record id="inherit_account_invoice_form_view" model="ir.ui.view">
             <field name="name">inherited.account.invoice.form.view</field>
             <field name="model">account.invoice</field>
@@ -48,14 +63,17 @@
                     <field name="gross_profit" widget="monetary"
                            options="{'currency_field': 'currency_id', 'field_digits': True}"/>
                 </xpath>
-                <xpath expr="//header/button[@name='action_invoice_open']" position="before">
-                    <field name="is_released" invisible="1"/>
-                    <field name="storage_down_payment" invisible="1"/>
-                     <button name="storage_contract_release" type="object"
-                             string="Release"
-                             attrs="{'invisible': ['|', ('storage_down_payment', '=', False), ('is_released', '=', True)]}"
-                             class="oe_highlight o_invoice_validate"
-                             groups="account.group_account_invoice"/>
+<!--                <xpath expr="//header/button[@name='action_invoice_open']" position="before">-->
+<!--                    <field name="is_released" invisible="1"/>-->
+<!--                    <field name="storage_down_payment" invisible="1"/>-->
+<!--                     <button name="storage_contract_release" type="object"-->
+<!--                             string="Create PO"-->
+<!--                             attrs="{'invisible': ['|', '|', ('state', '=', 'cancel'), ('storage_down_payment', '=', False), ('is_released', '=', True)]}"-->
+<!--                             class="oe_highlight o_invoice_validate"-->
+<!--                             groups="account.group_account_invoice"/>-->
+<!--                </xpath>-->
+                 <xpath expr="//form/sheet/notebook/page/field[@name='invoice_line_ids']/tree/field[@name='price_subtotal']" position="before">
+                    <field name="is_storage_contract" invisible="1"/>
                 </xpath>
             </field>
         </record>

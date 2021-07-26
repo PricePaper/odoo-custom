@@ -178,7 +178,7 @@ class ProductProduct(models.Model):
         start_date = result and result[0] and result[0][0]
         start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d').date()
         # start_date = datetime.datetime.strptime(from_date, "%Y-%m-%d").date()
-        
+
         def _get_next_business_day(date):
 
             exclude_days = (4, 5)
@@ -319,7 +319,7 @@ class ProductProduct(models.Model):
         """
 
         products = self.env['product.product'].search(
-            [('active', '=', True), ('type', '=', 'product'), ('dont_use_fbprophet', '=', False)],
+            [('active', '=', True), ('type', '=', 'product'), ('dont_use_fbprophet', '=', False), ('purchase_ok', '=', True)],
             order='last_op_update_date')
         for product in products:
             product.with_delay(channel='root.Product_Orderpoint').job_queue_forecast()

@@ -15,7 +15,7 @@
                     <field name="is_taxed" readonly="1" string="TX"/>
                     <field name="product_uom_qty" readonly="1" string="QTY"/>
                     <field name="product_uom" readonly="1" string="PU" widget="selection"/>
-                    <field name="cost" readonly="1" string="COST"/>
+                    <field name="working_cost" readonly="1" string="COST"/>
                     <field name="lst_price" readonly="1"/>
                     <field name="price_unit" readonly="1" string="UNIT PRICE"/>
                     <field name="percent" string="PCT"/>

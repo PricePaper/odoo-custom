@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_sc_popup_windows_wizard" model="ir.ui.view">
+            <field name="name">view.sc.popup.window.wizard</field>
+            <field name="model">sc.popup.window</field>
+            <field name="arch" type="xml">
+                <form string="Warning">
+                     <sheet>
+                        <script>
+                            $(document).ready(function(){
+                            $('.modal-dialog').css({'width': '550PX', 'height': '450PX'});
+                            });
+                        </script>
+
+                        <field name="partner_id" invisible="1"/>
+
+                            <group>
+                              <group>
+                                <field name="contract_line_id" style="width: 450px;" required="1" nolabel="1" placeholder="Select Contract Line" domain="[('order_id.state', '=', 'released'), ('order_id.storage_contract', '=', True), ('is_downpayment', '=', False), ('storage_remaining_qty', '&gt;', 0), ('order_id.partner_id', '=', partner_id)]"/>
+                              </group>
+                              <group>
+                                <field name="order_qty" required="1" style="width: 85px;"/>
+                              </group>
+                            </group>
+
+                    </sheet>
+                    <footer>
+                        <button string="Add" type="object" name="add_sc_line" class="oe_highlight"/>
+                        <button string="Cancel" special="cancel" class="btn-secondary"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <act_window id="action_sc_popup_windows"
+                    name="Storage Contract"
+                    res_model="sc.popup.window"
+                    view_mode="form" target="new" view_type="form"/>
+    </data>
+</odoo>

@@ -169,8 +169,9 @@
                 </xpath>
 
                  <xpath expr="//field[@name='picking_ids']/tree/button[@name='action_cancel']" position="after">
-                    <button class="fa fa-trash-o" name="action_remove" type="object" aria-label="Remove row"
-                            attrs="{'invisible': [('parent.state', 'in', ('done', 'no_payment', 'paid'))]}"/>
+                    <button class="fa fa-times" name="action_remove" type="object" aria-label="Remove row"
+                            attrs="{'invisible': [('parent.state', 'in', ('done', 'no_payment', 'paid'))]}"
+                            confirm="Are you sure want to remove this DO from batch"/>
                 </xpath>
 
                 <xpath expr="//field[@name='picking_ids']/tree" position="attributes">

@@ -13,17 +13,17 @@ class SaleOrderline(models.Model):
     is_taxed = fields.Char(string='TX', compute='_is_taxed')
     cost = fields.Float(string='Cost', related='product_id.cost')
     percent = fields.Float(string='PCT', compute='_calculate_percent')
-    lst_price = fields.Float(string='STD Price', related='product_id.lst_price')
+    # lst_price = fields.Float(string='STD Price', related='product_id.lst_price')
     class_margin = fields.Float(related='product_id.categ_id.class_margin')
     company_margin = fields.Float(related='company_id.company_margin')
     remark = fields.Char(string='RM', compute='_calculate_remark')
     deliver_by = fields.Date(string="Deliver By", related='order_id.deliver_by')
-    
+
     @api.multi
     def _calculate_percent(self):
         for line in self:
-            if line.cost:
-                line.percent = margin.get_margin(line.price_unit, line.cost, percent=True)
+            if line.working_cost:
+                line.percent = margin.get_margin(line.price_unit, line.working_cost, percent=True)
 
     @api.multi
     def _is_taxed(self):
@@ -47,12 +47,12 @@ class SaleOrderline(models.Model):
             if not line.price_unit:
                 remarks.append('NC')
 
-            if line.product_id.standard_price == line.price_unit:
+            if line.lst_price == line.price_unit:
                 remarks.append('FC')
 
-            if line.product_id.cost == line.price_unit:
+            if line.working_cost == line.price_unit:
                 remarks.append('C')
-            elif line.product_id.cost > line.price_unit:
+            elif line.working_cost > line.price_unit:
                 remarks.append('BC')
 
             if line.new_product:

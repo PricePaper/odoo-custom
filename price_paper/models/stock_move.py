@@ -7,6 +7,14 @@ class StockMove(models.Model):
     _inherit = 'stock.move'
 
     picking_partner_id = fields.Many2one('res.partner', related='picking_id.partner_id', string='Partner')
+    is_storage_contract = fields.Boolean(compute='_compute_is_storage_contract', store=True)
+    po_original_qty = fields.Float(related="sale_line_id.product_uom_qty", string='Original Quantity (PO)', readonly=True)
+
+    @api.depends('sale_line_id.storage_contract_line_id', 'sale_line_id.order_id.storage_contract')
+    def _compute_is_storage_contract(self):
+        for line in self:
+            if line.sale_line_id:
+                line.is_storage_contract = True if line.sale_line_id.storage_contract_line_id else True if line.sale_line_id.order_id.storage_contract else False
 
     def _search_picking_for_assignation(self):
         """
@@ -26,6 +34,14 @@ class StockMove(models.Model):
         """ Over ride to Return the accounts for inventory adjustment. """
         self.ensure_one()
         res = super(StockMove, self)._get_accounting_data_for_valuation()
+
+        if self.is_storage_contract:
+            valuation_account = self.product_id.categ_id.sc_stock_valuation_account_id
+            if not valuation_account:
+                raise UserError(_('Cannot find a SC Stock Valuation Account in product category: %s' % self.product_id.categ_id.name))
+
+            return (res[0], res[1], res[2], valuation_account.id)
+
         if self._context.get('from_inv_adj', False):
             acc_src = False
             acc_dest = False

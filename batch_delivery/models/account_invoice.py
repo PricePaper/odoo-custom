@@ -99,7 +99,7 @@ class AccountInvoice(models.Model):
             for order in orders:
                 picking = order.mapped('picking_ids')
                 pending_picking = picking.filtered(lambda r: r.state not in ('done', 'cancel'))
-                if not pending_picking:
+                if not pending_picking and not order.storage_contract:
                     order.action_done()
         res = super(AccountInvoice, self).action_invoice_open()
         if not self:

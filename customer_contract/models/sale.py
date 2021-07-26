@@ -30,7 +30,7 @@ class SaleOrder(models.Model):
                 ('remaining_qty', '<=', 0.0),
                 ('state', '=', 'confirmed')
             ])
-            lines.action_expire()
+            lines.mapped('contract_id').action_expire()
         return res
 
 
@@ -64,7 +64,7 @@ class SaleOrderLine(models.Model):
                 warning_mess = {
                     'title': _('More than Customer Contract'),
                     'message': _(
-                        'You are going to cell more than in customer contract.Only %s is remaining in this contract.' % (
+                        'You are going to Sell more than in customer contract.Only %s is remaining in this contract.' % (
                             self.customer_contract_line_id.remaining_qty + self.product_uom_qty))
                 }
                 self.product_uom_qty = 0

@@ -5,7 +5,7 @@ from datetime import timedelta, date
 
 from odoo import models, fields, api, _
 from odoo.addons import decimal_precision as dp
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 
 MAP_INVOICE_TYPE_PAYMENT_SIGN = {
     'out_invoice': 1,
@@ -56,16 +56,16 @@ class AccountInvoice(models.Model):
     _inherit = "account.invoice"
 
     gross_profit = fields.Monetary(compute='calculate_gross_profit', string='Predicted Profit')
-    storage_down_payment = fields.Boolean()
-    is_released = fields.Boolean()
+    storage_down_payment = fields.Boolean(copy=False)
+    # is_released = fields.Boolean(copy=False)
     discount_from_batch = fields.Float('WriteOff Discount')
     invoice_address_id = fields.Many2one('res.partner', string="Billing Address")
 
-    def storage_contract_release(self):
-        sale_order = self.invoice_line_ids.mapped('sale_line_ids').mapped('order_id')
-        self.write({'is_released': True})
-        sale_order.run_storage()
-        sale_order.message_post(body='Sale Order Released by : %s'%self.env.user.name)
+    # def storage_contract_release(self):
+    #     sale_order = self.invoice_line_ids.mapped('sale_line_ids').mapped('order_id')
+    #     self.write({'is_released': True})
+    #     sale_order.run_storage()
+    #     sale_order.message_post(body='Sale Order Released by : %s'%self.env.user.name)
 
     @api.onchange('partner_id', 'company_id')
     def _onchange_partner_id(self):
@@ -79,19 +79,50 @@ class AccountInvoice(models.Model):
 
     @api.multi
     def invoice_validate(self):
-
         for invoice in self:
             if not invoice.payment_term_id and invoice.type in ('out_invoice', 'in_invoice'):
                 raise ValidationError(_('Payment term is not set for invoice %s' % (invoice.number)))
         res = super(AccountInvoice, self).invoice_validate()
         return res
 
+    @api.model
+    def _anglo_saxon_sale_move_lines(self, i_line):
+        """override for stock contract.
+        passing extra context value to identify the sc stock liability account.
+        """
+        inv = i_line.invoice_id
+        flag = False
+        if i_line.is_storage_contract and not inv.storage_down_payment:
+            if i_line.sale_line_ids.mapped('order_id').storage_contract:
+                flag = True
+            else:
+                flag = 'sc_order'
+        return super(AccountInvoice, self.with_context({'sc_move': flag}))._anglo_saxon_sale_move_lines(i_line)
+
     @api.multi
     def action_invoice_cancel(self):
-        if self.state == 'draft':
+        main = self.env['sale.order']
+        down = self.env['sale.order']
+        for invoice in self:
+            sale_order = invoice.mapped('invoice_line_ids').mapped('sale_line_ids').mapped('order_id')
+            if sale_order.storage_contract:
+                # if invoice.storage_down_payment:
+                #     if sale_order.state == 'released' and sale_order.invoice_status == 'invoiced':
+                #         raise UserError('It is forbidden to modify a released order.')
+                #     if sale_order.state == 'done' and sale_order.invoice_status == 'invoiced':
+                #         raise UserError('It is forbidden to modify a released order.')
+                #     down |= sale_order
+                # else:
+                main |= sale_order
+        if main:
+            main.write({'state': 'done'})
+
+        if all([inv.state == 'draft' for inv in self]):
             return super(AccountInvoice, self).action_invoice_cancel()
+
         if not self.env.user.has_group('account.group_account_manager'):
             raise ValidationError(_('You dont have permissions to cancel an invoice.'))
+
         return super(AccountInvoice, self).action_invoice_cancel()
 
     @api.depends('invoice_line_ids.profit_margin')
@@ -158,6 +189,25 @@ class AccountInvoiceLine(models.Model):
                              compute='_compute_lst_cost_prices')
     working_cost = fields.Float(string='Working Cost', digits=dp.get_precision('Product Price'), store=True,
                                 compute='_compute_lst_cost_prices')
+    is_storage_contract = fields.Boolean(compute='_compute_is_storage_contract', store=True)
+
+    @api.depends('sale_line_ids.storage_contract_line_id', 'sale_line_ids.order_id.storage_contract')
+    def _compute_is_storage_contract(self):
+        for line in self:
+            if line.sale_line_ids:
+                if len(line.sale_line_ids.mapped('storage_contract_line_id.id')):
+                    line.is_storage_contract = True
+                elif any(line.sale_line_ids.mapped('order_id.storage_contract')):
+                    line.is_storage_contract = True
+                else:
+                    line.is_storage_contract = False
+            elif line.purchase_line_id and line.purchase_line_id.sale_line_id:
+                if line.purchase_line_id.sale_line_id.storage_contract_line_id:
+                    line.is_storage_contract = True
+                elif line.purchase_line_id.sale_line_id.order_id.storage_contract:
+                    line.is_storage_contract = True
+                else:
+                    line.is_storage_contract = False
 
     # Uncomment the below 2 lines while running sale order line import scripts
     # lst_price = fields.Float(string='Standard Price', digits=dp.get_precision('Product Price'))

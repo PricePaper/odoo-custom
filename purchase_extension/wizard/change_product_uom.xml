@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_change_product_uom_wiz" model="ir.ui.view">
+            <field name="name">change.product.uom</field>
+            <field name="model">change.product.uom</field>
+            <field name="arch" type="xml">
+                <form string="Change Product UOM">
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="product_id" readonly='1'/>
+                                <field name="new_name" required='1'/>
+                                <field name="new_default_code" required='1'/>
+                            </group>
+                            <group>
+                              <field name="new_cost" required='1'/>
+                              <field name="new_sale_uoms" widget="many2many_tags" required='1'/>
+                              <field name="new_uom" required='1'/>
+                            </group>
+                        </group>
+
+                        <footer>
+                            <button string="Create New Product" type="object" name="create_duplicate_product"/>
+                            or
+                            <button string="Cancel" class="oe_link" special="cancel"/>
+                        </footer>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>

@@ -264,7 +264,8 @@
                  <xpath expr="//field[@name='order_line']/form//label[@for='qty_delivered']" position="before">
                      <field name="storage_contract_line_id" options="{'no_create': False}"
                             attrs="{'invisible': [('parent.show_contract_line', '=', False)]}"
-                            domain="[('order_id.storage_contract', '=', True), ('is_downpayment', '=', False), ('storage_remaining_qty', '&gt;', 0), ('order_id.partner_id', '=', parent.partner_id)]"/>
+                            domain="[('order_id.state', '=', 'released'), ('order_id.storage_contract', '=', True), ('is_downpayment', '=', False), ('storage_remaining_qty', '&gt;', 0), ('order_id.partner_id', '=', parent.partner_id)]"
+                     invisible="1"/>
                  </xpath>
                 <xpath expr="//field[@name='order_line']/tree/field[@name='price_unit']" position="before">
                     <field name="lst_price" readonly="1"/>
@@ -339,6 +340,10 @@
                 <xpath expr="//field[@name='order_line']" position="before">
                     <button type="object" name="add_purchase_history_to_so_line" string="Browse History Lines"
                             context="{'partner':partner_id}" class="oe_edit_only oe_highlight"/>
+                    <button type="action" name="%(action_sc_popup_windows)d" string="Browse Storage Contract"
+                             context="{'default_partner_id':partner_id}" class="oe_edit_only oe_highlight"
+                    />
+
                 </xpath>
 
                 <xpath expr="//field[@name='order_line']/form" position="inside">
@@ -551,9 +556,15 @@ action = records.env['sale.order'].confirm_multiple_orders(records)
                 <field name="arch" type="xml">
                     <form string="Sales Order" class="o_sale_order">
                     <header>
-                        <field name="sc_payment_done" invisible="1"/>
+                        <field name="sc_po_done" invisible="1"/>
+                        <field name="invoice_status" invisible="1"/>
+                        <button name="%(sale.action_view_sale_advance_payment_inv)d" string="Create Invoice"
+                            type="action" class="btn-primary"
+                            attrs="{'invisible': [('invoice_status', '!=', 'to invoice')]}"/>
+                        <button name="%(sale.action_view_sale_advance_payment_inv)d" string="Create Invoice" type="action" context="{'default_advance_payment_method': 'percentage'}" attrs="{'invisible': ['|',('invoice_status', '!=', 'no'), ('state', '!=', 'sale')]}"/>
                         <button name="action_storage_contract_confirm" type="object" string="Confirm" class="oe_highlight" states="draft"/>
-                        <button name="action_create_storage_downpayment" type="object" string="SC Payment" class="oe_highlight" attrs="{'invisible': ['|', ('state', '=', 'draft'), ('sc_payment_done', '=', True)]}"/>
+                        <button name="action_create_storage_do" type="object" string="Create PO" class="oe_highlight" attrs="{'invisible': ['|', ('state', '=', 'draft'), ('sc_po_done', '=', True)]}"/>
+                        <button name="action_release" groups="account.group_account_manager" type="object" string="Release" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'done')]}"/>
                         <field name="state" widget="statusbar" statusbar_visible="draft,sale"/>
                     </header>
                     <sheet>
@@ -573,6 +584,14 @@ action = records.env['sale.order'].confirm_multiple_orders(records)
                                groups="purchase.group_purchase_user">
                                <field name="purchase_order_count" widget="statinfo" string="Purchase Orders"/>
                            </button>
+                            <button class="oe_stat_button"
+                                type="object" name="view_sc_child_orders"
+                                groups="sales_team.group_sale_salesman"
+                                attrs="{'invisible': [('sc_child_order_count', '=', 0)]}"
+                                icon="fa-usd">
+                                <field string="Sales" name="sc_child_order_count" widget="statinfo"/>
+                            </button>
+
                         </div>
                         <div class="oe_title">
                             <h1>
@@ -588,9 +607,9 @@ action = records.env['sale.order'].confirm_multiple_orders(records)
                             </group>
                             <group>
                                 <field name="confirmation_date" attrs="{'invisible': [('confirmation_date', '=', False)]}"/>
-                                <field name="pricelist_id" groups="product.group_sale_pricelist"/>
                                 <field name="currency_id" invisible="1"/>
-                                <field name="payment_term_id" options="{'no_create': True}"/>
+                                <field name="payment_term_id" options="{'no_create': True}" attrs="{'readonly': [('state', 'in', ('sale','done', 'cancel', 'released'))]}"/>
+                                <field name="pricelist_id" invisible="1"/>
                                 <field name="storage_contract" invisible="1"/>
                             </group>
                         </group>
@@ -619,7 +638,7 @@ action = records.env['sale.order'].confirm_multiple_orders(records)
                                         <field name="product_updatable" invisible="1"/>
                                         <field name="product_id"
                                             attrs="{
-                                                'readonly': ['|', ('product_updatable', '=', False), ('state', 'in', ('sale','done', 'cancel'))],
+                                                'readonly': ['|', ('product_updatable', '=', False), ('state', 'in', ('sale','done', 'cancel', 'released'))],
                                                 'required': [('display_type', '=', False)],
                                             }"
                                             force_save="1"
@@ -637,12 +656,12 @@ action = records.env['sale.order'].confirm_multiple_orders(records)
                                         <field name="product_no_variant_attribute_value_ids" invisible="1" />
                                         <field name="name" widget="section_and_note_text"
                                           attrs="{
-                                              'readonly': [('state', 'in', ('sale','done', 'cancel'))]}"/>
+                                              'readonly': [('state', 'in', ('sale','done', 'cancel', 'released'))]}"/>
                                         <field
                                             name="product_uom_qty"
                                             string="OrderQty"
                                             attrs="{
-                                                'readonly': [('state', 'in', ('sale','done', 'cancel'))]}"
+                                                'readonly': [('state', 'in', ('sale','done', 'cancel', 'released'))]}"
                                             context="{
                                                 'partner_id': parent.partner_id,
                                                 'quantity': product_uom_qty,
@@ -658,12 +677,13 @@ action = records.env['sale.order'].confirm_multiple_orders(records)
                                                 'column_invisible': [('parent.state', 'not in', ['sale', 'released'])],
                                             }"
                                         />
+                                        <field name="qty_delivered" readonly="1" attrs="{'column_invisible': [('parent.state', 'not in', ['done', 'released'])]}"/>
                                         <field name="sale_uom_ids" invisible="1"/>
                                         <field
                                             name="product_uom"
                                             force_save="1"
                                             attrs="{
-                                                'readonly': [('state', 'in', ('sale','done', 'cancel'))],
+                                                'readonly': [('state', 'in', ('sale','done', 'cancel', 'released'))],
                                                 'required': [('display_type', '=', False)],
                                             }"
                                             domain="[('id', 'in', sale_uom_ids)]"
@@ -673,10 +693,12 @@ action = records.env['sale.order'].confirm_multiple_orders(records)
                                         />
                                         <field
                                             name="price_unit" attrs="{
-                                                'readonly': [('state', 'in', ('sale','done', 'cancel'))]}"
+                                                'readonly': [('state', 'in', ('sale','done', 'cancel', 'released'))]}"
                                         />
+                                        <field name="price_tax"/>
+                                        <field name="tax_id" widget="many2many_tags" attrs="{'readonly': [('state', '=', 'released')]}"/>
                                         <field name="discount" groups="sale.group_discount_per_so_line" attrs="{
-                                            'readonly': [('state', 'in', ('sale','done', 'cancel'))]}"/>
+                                            'readonly': [('state', 'in', ('sale','done', 'cancel', 'released'))]}"/>
                                         <field name="price_subtotal" widget="monetary" groups="account.group_show_line_subtotals_tax_excluded"/>
                                         <field name="price_total" widget="monetary" groups="account.group_show_line_subtotals_tax_included"/>
                                         <field name="state" invisible="1"/>
@@ -735,7 +757,7 @@ action = records.env['sale.order'].confirm_multiple_orders(records)
             <field name="search_view_id" ref="sale_order_view_search_storage_contract"/>
             <field name="context">{'default_storage_contract': 1}</field>
             <field name="view_type">form</field>
-             <field name="domain">[('storage_contract', '=', True),('state', 'in', ('draft', 'sale', 'released'))]</field>
+             <field name="domain">[('storage_contract', '=', True)]</field>
             <field name="view_mode">tree,form</field>
             <field name="help" type="html">
                 <p>

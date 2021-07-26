@@ -1,5 +1,19 @@
 <odoo>
     <data>
+
+        <!-- Inherit Form View to Modify it -->
+        <record id="view_storage_contract_order_form_sale_commission" model="ir.ui.view">
+            <field name="name">sc.contract.sale.view.form</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="price_paper.view_storage_contract_order_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='storage_contract']" position="after">
+                    <field name="sales_person_ids" widget="many2many_tags" attrs="{'readonly': [('state', '=', 'released')]}"/>
+                </xpath>
+
+            </field>
+        </record>
+
         <record id="view_commission_sale_grouped_tree" model="ir.ui.view">
             <field name="name">commission.sale.tree</field>
             <field name="model">sale.commission</field>

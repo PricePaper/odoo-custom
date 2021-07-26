@@ -32,6 +32,14 @@ class SaleCommission(models.Model):
     paid_date = fields.Date('Paid Date', compute='get_invoice_paid_date', store=True)
     partner_id = fields.Many2one(related='invoice_id.partner_id', string="Customer")
 
+    def link_sc(self, sc_line_id=False, po_line_id=False):
+        sc_line = self.env['sale.order.line'].browse(sc_line_id)
+        po_line = self.env['purchase.order.line'].browse(po_line_id)
+        po_line.write({'sale_line_id': sc_line.id})
+        po_line.move_ids.write({'sale_line_id': sc_line.id, 'is_storage_contract': True})
+        po_line.invoice_lines.write({'is_storage_contract': True})
+        sc_line.order_id.write({'state': 'released', 'sc_po_done': True})
+
     def find_invoices(self, offset=0, limit=100):
         print(limit)
         no_delivery = []

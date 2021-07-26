@@ -30,5 +30,58 @@
                 </field>
             </field>
         </record>
+          <record id="view_picking_form_inherit_price_paper" model="ir.ui.view">
+            <field name="name">stock.picking.batch.delivery</field>
+            <field name="model">stock.picking</field>
+            <field name="inherit_id" ref="stock.view_picking_form"/>
+            <field name="arch" type="xml">
+
+
+                <button name="button_validate" position="after">
+                    <field name="over_processed" invisible="1"/>
+                    <button name="sync_over_processed" type="object" string="Sync OverProcessed"
+                            attrs="{'invisible': [('over_processed', '=', False)]}" class="oe_highlight"/>
+                </button>
+
+            </field>
+        </record>
+
+        <record id="view_stock_move_over_processed_window" model="ir.ui.view">
+        <field name="name">stock.picking.over.processed.window</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <form>
+                <field name="move_ids_without_package" readonly="1">
+                    <tree>
+                        <field name="name" invisible="1"/>
+                        <field name="date_expected" invisible="1"/>
+                        <field name="state" invisible="1" readonly="0"/>
+                        <field name="picking_type_id" invisible="1"/>
+                        <field name="location_id" invisible="1"/>
+                        <field name="location_dest_id" invisible="1"/>
+                        <field name="scrapped" invisible="1"/>
+                        <field name="picking_code" invisible="1"/>
+                        <field name="product_type" invisible="1"/>
+                        <field name="show_details_visible" invisible="1"/>
+                        <field name="show_reserved_availability" invisible="1"/>
+                        <field name="show_operations" invisible="1" readonly="1"/>
+                        <field name="additional" invisible="1"/>
+                        <field name="has_move_lines" invisible="1"/>
+                        <field name="is_locked" invisible="1"/>
+                        <field name="product_id"/>
+                        <field name="po_original_qty" string="Initial Demand"/>
+                        <field name="is_initial_demand_editable" invisible="1"/>
+                        <field name="is_quantity_done_editable" invisible="1"/>
+                        <field name="quantity_done" string="Done"/>
+                        <field name="product_uom"/>
+                    </tree>
+                </field>
+                <footer class="oe_edit_only">
+                        <button string="Sync" type="object" name="action_sc_sync_with_receipt" class="oe_highlight" confirm="Are you sure you want to sync this picking with storage contract?"/>
+                        <button string="Discard" special="cancel"/>
+                </footer>
+            </form>
+         </field>
+     </record>
     </data>
 </odoo>

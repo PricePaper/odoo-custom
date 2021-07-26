@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="paperformat_pricelist_report" model="report.paperformat">
+            <field name="name">Driver Batch delivery Slip</field>
+            <field name="default" eval="False"/>
+            <field name="format">Letter</field>
+            <field name="page_height">0</field>
+            <field name="page_width">0</field>
+            <field name="orientation">Portrait</field>
+            <field name="margin_top">20</field>
+            <field name="margin_bottom">10</field>
+            <field name="margin_left">10</field>
+            <field name="margin_right">10</field>
+            <field name="header_line" eval="False"/>
+            <field name="header_spacing">10</field>
+            <field name="dpi">90</field>
+        </record>
+        <report
+                string="Pricelist Report"
+                id="pricelist_report"
+                model="product.pricelist"
+                report_type="qweb-pdf"
+                file="price_maintanance.report_pricelist"
+                name="price_maintanance.report_pricelist"
+                paperformat="paperformat_pricelist_report"
+                print_report_name="'%s' % (object.name)"
+        />
+    </data>
+</odoo>

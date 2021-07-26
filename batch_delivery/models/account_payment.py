@@ -9,6 +9,7 @@ class AccountPayment(models.Model):
     batch_id = fields.Many2one('stock.picking.batch', string='Delivery Batch')
     state = fields.Selection([('draft', 'Draft'), ('posted', 'Posted'), ('sent', 'Sent'), ('reconciled', 'Reconciled'),
                               ('cancelled', 'Cancelled')], readonly=True, default='draft', copy=False, string="Status", track_visibility='onchange')
+    common_batch_id = fields.Many2one('batch.payment.common', string='Delivery Batch')
 
     @api.multi
     def print_checks(self):

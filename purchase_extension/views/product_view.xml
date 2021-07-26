@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
+
+        <record id="product_product_view_form_easy_inherit_purchase_extension" model="ir.ui.view">
+            <field name="name">product.product.pricepaper.purchase</field>
+            <field name="model">product.product</field>
+            <field name="inherit_id" ref="stock.product_form_view_procurement_button"/>
+            <field name="arch" type="xml">
+              <button name="action_update_quantity_on_hand" position='after'>
+                 <button name="action_change_product_uom" string="Change Product UOM" type="object" attrs="{'invisible': [('type', '!=', 'product')]}"/>
+              </button>
+            </field>
+        </record>
+
         <record id="product_supplierinfo_search_view_inherit_purchase_ext" model="ir.ui.view">
             <field name="name">product.supplierinfo.search.view</field>
             <field name="model">product.supplierinfo</field>

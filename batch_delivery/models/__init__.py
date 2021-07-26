@@ -16,5 +16,6 @@ from . import stock_production_lot
 from . import picking_pending_product
 from . import stock_picking_return
 from . import stock_quant
+from . import batch_payment_common
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
