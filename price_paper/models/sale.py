@@ -290,6 +290,10 @@ class SaleOrder(models.Model):
     def action_release(self):
         self.write({'state': 'released'})
 
+    @api.multi
+    def action_restore(self):
+        return self.write({'state': 'done'})
+
     # @api.multi
     # def action_create_storage_downpayment(self):
     #     """

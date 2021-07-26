@@ -565,6 +565,7 @@ action = records.env['sale.order'].confirm_multiple_orders(records)
                         <button name="action_storage_contract_confirm" type="object" string="Confirm" class="oe_highlight" states="draft"/>
                         <button name="action_create_storage_do" type="object" string="Create PO" class="oe_highlight" attrs="{'invisible': ['|', ('state', '=', 'draft'), ('sc_po_done', '=', True)]}"/>
                         <button name="action_release" groups="account.group_account_manager" type="object" string="Release" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'done')]}"/>
+                        <button name="action_restore" groups="account.group_account_manager" type="object" string="UnRelease" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'released')]}"/>
                         <field name="state" widget="statusbar" statusbar_visible="draft,sale"/>
                     </header>
                     <sheet>
