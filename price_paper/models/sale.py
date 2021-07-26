@@ -959,7 +959,7 @@ class SaleOrderLine(models.Model):
     storage_contract_line_id = fields.Many2one('sale.order.line', string='Contract Line')
     storage_contract_line_ids = fields.One2many('sale.order.line', 'storage_contract_line_id')
     selling_min_qty = fields.Float(string="Minimum Qty")
-    accounting_difference =  fields.Boolean('Discrepency', copy=False, compute="_discrepancy", store=True)#, search="find_discrepancy")
+    accounting_difference =  fields.Boolean('Discrepancy', copy=False, compute="_discrepancy", store=True)#, search="find_discrepancy")
     stock_journal_item = fields.Many2many('account.move.line', string='Stock Journal', compute="_discrepancy")
     invoice_journal_item = fields.Many2many('account.move.line', string='Invoice Journal', compute="_discrepancy")
 
@@ -976,23 +976,24 @@ class SaleOrderLine(models.Model):
         print(line_ids)
         return [('id', 'in', line_ids)]
 
-    @api.depends('move_ids', 'invoice_lines')
+    @api.depends('move_ids.account_move_ids.line_ids.balance', 'invoice_lines.invoice_id.move_id.line_ids.balance')
     def _discrepancy(self):
         for line in self:
             line.accounting_difference = False
             line.stock_journal_item = False
             line.invoice_journal_item = False
             if line.product_id and line.state not in ['cancel', 'draft'] and line.create_date > datetime.strptime('2021-07-02', "%Y-%m-%d"):
-                print(line,'==============>')
+                if line.order_id.storage_contract:
+                    continue
                 accounts = line.product_id.product_tmpl_id.get_product_accounts()
                 sjl = line.move_ids.mapped('account_move_ids').mapped('line_ids').filtered(lambda r: r.account_id.id == accounts['stock_output'].id)
                 ijl = line.invoice_lines.mapped('invoice_id').mapped('move_id').mapped('line_ids').filtered(lambda r: r.account_id.id == accounts['stock_output'].id \
-                    and r.product_id.id == line.product_id.id and r.quantity == line.quantity)
+                    and r.product_id.id == line.product_id.id)
+
                 if round(abs(sum(sjl.mapped('balance')))) != round(abs(sum(ijl.mapped('balance')))):
                     line.accounting_difference = True
                     line.stock_journal_item = sjl
                     line.invoice_journal_item = ijl
-
 
     @api.depends('state', 'product_uom_qty', 'qty_delivered', 'qty_to_invoice', 'qty_invoiced',
                  'order_id.storage_contract')
