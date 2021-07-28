@@ -1475,7 +1475,7 @@ class SaleOrderLine(models.Model):
         """
         for line in self:
             if line.product_id:
-                if line.is_delivery or line.is_downpayment or line.storage_contract_line_id:
+                if line.is_delivery or line.is_downpayment or line.storage_contract_line_id or line.product_id.type=='service':
                     line.profit_margin = 0.0
                     if line.is_delivery and line.order_id.carrier_id:
                         price_unit = line.order_id.carrier_id.average_company_cost

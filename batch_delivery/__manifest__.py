@@ -19,6 +19,7 @@ This module sets up the batch delivery process for price paper.
         'wizard/pending_product_view.xml',
         'wizard/picking_full_return_wizard_view.xml',
         'wizard/stock_backorder_confirmation_views.xml',
+        'views/res_company.xml',
         'views/truck_route_view.xml',
         'views/truck_driver_view.xml',
         'views/delivery_carrier_view.xml',

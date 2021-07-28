@@ -3,7 +3,7 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 from odoo.tools import float_compare
-from datetime import datetime
+import datetime
 
 
 class StockPicking(models.Model):
@@ -89,14 +89,14 @@ class StockPicking(models.Model):
         #     release_date = self.move_lines.mapped('purchase_line_id').mapped('order_id').mapped('release_date')
         if self.move_type == 'direct':
             if release_date and any(release_date):
-                self.scheduled_date = datetime.combine(min(release_date), datetime.min.time())
+                self.scheduled_date = datetime.datetime.combine(min(release_date), datetime.datetime.min.time())
             elif self.move_lines.mapped('date_expected'):
                 self.scheduled_date = min(self.move_lines.mapped('date_expected'))
             else:
                 self.scheduled_date = fields.Datetime.now()
         else:
             if release_date and any(release_date):
-                self.scheduled_date = datetime.combine(min(release_date), datetime.min.time())
+                self.scheduled_date = datetime.datetime.combine(min(release_date), datetime.datetime.min.time())
             elif self.move_lines.mapped('date_expected'):
                 self.scheduled_date = min(self.move_lines.mapped('date_expected'))
             else:
@@ -282,7 +282,9 @@ class StockPicking(models.Model):
                 raise UserError(_(error))
 
             route_id = vals.get('route_id', False)
+            print(route_id, 'pPPPPPPPPPP')
             if route_id:
+                print(route_id, 'pPPPPPPPPPP')
                 BatchOB = self.env['stock.picking.batch']
                 batch = BatchOB.search([('state', '=', 'in_progress'), ('route_id', '=', route_id)], limit=1)
                 if batch:
@@ -299,12 +301,32 @@ class StockPicking(models.Model):
 
                 if not batch:
                     batch = BatchOB.create({'route_id': route_id})
-                # if picking.state not in ('assigned', 'done'):
-                #     error = "The requested operation cannot be processed because all quantities are not available for picking %s. Please assign quantities for this picking." %(picking.name)
-                #     raise UserError(_(error))
+                print('QQQQ111', picking.mapped('carrier_id').mapped('exclude_late_order')[0])
                 picking.batch_id = batch
+                print('QQQQ111', picking.mapped('carrier_id').mapped('exclude_late_order')[0])
+                if not picking.mapped('carrier_id').mapped('exclude_late_order')[0]:
+                    vals['is_late_order'] = batch.state == 'in_progress'
+                    late_order_time = self.env.user.company_id.late_order_time
+                    if not late_order_time:
+                        raise UserError(_('Late order Time not set on the Company'))
+                    late_order_time = datetime.datetime.combine(datetime.date.today(), datetime.time()) + \
+                        datetime.timedelta(hours=late_order_time)
+                    print(late_order_time, picking.sale_id.confirmation_date)
+                    if picking.sale_id.confirmation_date > late_order_time:
+                        print('QQQQ')
+                        late_order_product = self.env.user.company_id.lateorder_product_id
+                        if not late_order_product:
+                            raise UserError(_('Late order Product is not set on the Company'))
 
-                vals['is_late_order'] = batch.state == 'in_progress'
+                        sale_order_line = {
+                            'product_id': late_order_product.id,
+                            'product_uom': late_order_product.uom_id.id,
+                            'product_uom_qty': 1,
+                            'price_unit': late_order_product.standard_price,
+                            'order_id': picking.sale_id.id,
+                        }
+                        print(sale_order_line)
+                        self.env['sale.order.line'].create(sale_order_line)
             if 'route_id' in vals.keys() and not (
                     vals.get('route_id', False)) and picking.batch_id and picking.batch_id.state == 'draft':
                 vals.update({'batch_id': False})

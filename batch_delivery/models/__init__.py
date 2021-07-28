@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from . import res_company
 from . import res_partner
 from . import truck_route
 from . import delivery_carrier

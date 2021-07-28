@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="res_company_inherit_batch_delivery" model="ir.ui.view">
+            <field name="name">res.company.pricepaper</field>
+            <field name="model">res.company</field>
+            <field name="inherit_id" ref="price_paper.res_company_inherit_price_paper"/>
+            <field name="arch" type="xml">
+              <xpath expr="//field[@name='storage_product_id']" position="after">
+                  <field name='late_order_time' widget="float_time" />
+                  <field name='lateorder_product_id' />
+              </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>
