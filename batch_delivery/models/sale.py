@@ -10,12 +10,20 @@ class SaleOrder(models.Model):
 
     have_prive_lock = fields.Boolean(compute='_compute_price_lock')
     delivery_date = fields.Date(string="Delivery Date")
+    batch_processed = fields.Boolean(copy=False)
 
     @api.depends('order_line.price_lock')
     def _compute_price_lock(self):
         for rec in self:
             rec.have_prive_lock = any(rec.order_line.mapped('price_lock'))
 
+    @api.multi
+    def write(self, vals):
+        res = super(SaleOrder, self).write(vals)
+        for sale in self:
+            if 'state' not in vals and sale.batch_processed and not self._context.get('recursive_stop'):
+                sale.with_context(recursive_stop=True).action_done()
+        return res
 
 SaleOrder()
 

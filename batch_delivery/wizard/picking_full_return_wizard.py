@@ -36,7 +36,9 @@ class PickingFullReturnWizard(models.TransientModel):
         for move in picking.move_ids_without_package:
             move.sale_line_id.qty_delivered -= move.reserved_availability
         order = self.env['sale.order.line'].search([('order_id', '=', picking.sale_id.id), ('is_delivery', '=', True)])
+        picking.sale_id.action_unlock()
         order.write({'product_uom_qty': order.product_uom_qty + 1})
+        picking.sale_id.action_done()
         invoice = picking.sale_id.invoice_ids.filtered(lambda rec: picking in rec.picking_ids)
         invoice.action_cancel()
         #TODO :: Picking Return

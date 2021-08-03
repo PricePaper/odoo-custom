@@ -228,7 +228,9 @@ class StockPicking(models.Model):
                     if line.sale_line_id:
                         line.sale_line_id.qty_delivered = line.reserved_availability
                 if pick.batch_id:
+                    pick.sale_id.action_unlock()
                     pick.sale_id.write({'delivery_date': pick.batch_id.date})
+                    pick.sale_id.action_done()
     @api.multi
     def action_transfer_complete(self):
         for pick in self:
@@ -257,8 +259,10 @@ class StockPicking(models.Model):
             if picking.sale_id.invoice_status in ['no', 'invoiced']:
                 continue
             if picking.sale_id.invoice_status == 'to invoice':
+                picking.sale_id.action_unlock()
                 picking.sale_id.adjust_delivery_line()
                 picking.sale_id.action_invoice_create(final=True)
+                picking.sale_id.action_done()
                 picking.is_invoiced = True
             if picking.batch_id:
                 invoice = picking.sale_id.invoice_ids.filtered(lambda rec: picking in rec.picking_ids)
@@ -305,12 +309,15 @@ class StockPicking(models.Model):
                 #     error = "The requested operation cannot be processed because all quantities are not available for picking %s. Please assign quantities for this picking." %(picking.name)
                 #     raise UserError(_(error))
                 picking.batch_id = batch
+                if picking.sale_id.state not in ['done', 'cancel']:
+                    picking.sale_id.batch_processed = True
+                    picking.sale_id.action_done()
 
                 vals['is_late_order'] = batch.state == 'in_progress'
-            if 'route_id' in vals.keys() and not (
-                    vals.get('route_id', False)) and picking.batch_id and picking.batch_id.state == 'draft':
-                vals.update({'batch_id': False})
+
             if 'route_id' in vals.keys() and not vals.get('route_id', False):
+                picking.sale_id.action_unlock()
+                picking.sale_id.batch_processed = False
                 picking.mapped('move_lines').write({'is_transit': False})
                 vals.update({'batch_id': False, 'is_late_order': False, 'is_transit': False})
         res = super(StockPicking, self).write(vals)
