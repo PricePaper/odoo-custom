@@ -5,12 +5,7 @@
         <t t-call="web.html_container">
           <t t-set="salespersons" t-value="get_commission_lines(docs)"/>
           <t t-foreach="salespersons" t-as="rep_id">
-            <div class="page" style="page-break-after: always;">
-              <div class="row col-12" style="font-weight: bolder; padding-bottom:10px;">
-                  <div class="col-12" style="text-align:left;">
-                      <span t-field="rep_id.name"/>
-                  </div>
-              </div>
+            <div class="page">
                <style>
                   .o_main_table td {
                       padding: 0.25rem;
@@ -22,84 +17,49 @@
                 <thead>
                     <tr>
                         <th><strong>Invoice</strong></th>
-                        <th><strong>Invoice Date</strong></th>
-                        <th><strong>Paid Date</strong></th>
-                        <th><strong>Invoice Amount</strong></th>
-                        <th><strong>Profit</strong></th>
-                        <th><strong>Type</strong></th>
+                        <th><strong>Partner</strong></th>
+                        <th><strong>Sale Rep</strong></th>
                         <th><strong>Commission</strong></th>
+                        <th><strong>Real Commission</strong></th>
                     </tr>
                 </thead>
-                  <tbody>
-
-                      <t t-set="partners" t-value="salespersons[rep_id]"/>
-                      <t t-set="total" t-value="0"/>
-                      <t t-foreach="partners" t-as="partner_id">
-                        <tr>
-                            <td colspan="7">
-                              <span t-field="partner_id.name"/>
-                            </td>
-                            <t t-set="partner_total" t-value="0"/>
-                        </tr>
-                        <t t-set="invoices" t-value="partners[partner_id]"/>
-                        <t t-foreach="invoices" t-as="invoice_id">
+                <tbody>
+                    <t t-set="partners" t-value="salespersons[rep_id]"/>
+                    <t t-foreach="partners" t-as="partner_id">
+                      <t t-set="invoices" t-value="partners[partner_id]"/>
+                      <t t-foreach="invoices" t-as="invoice_id">
                           <t t-set="commission_list" t-value="invoices[invoice_id]"/>
                           <t t-foreach="commission_list" t-as="commission">
-                            <tr>
-                                <td>
-                                    <span>
-                                        <t t-esc="commission['invoice_id'].number"/>
-                                    </span>
-                                </td>
-
-                                <td>
-                                    <span t-if="commission['invoice_id'].date_invoice">
-                                        <t t-esc="commission['invoice_id'].date_invoice"/>
-                                    </span>
-                                </td>
-                                <td>
-                                    <span t-if="commission['commission_date']">
-                                        <t t-esc="commission['commission_date']"/>
-                                    </span>
-                                </td>
-                                <td>
-                                    <span t-if="commission['invoice_amount']">
-                                        <t t-esc="'%.2f'% commission['invoice_amount']"/>
-                                    </span>
-                                </td>
-                                <td>
-                                    <span>
-                                        <t t-esc="'%.2f'% commission['invoice_id'].gross_profit"/>
-                                    </span>
-                                </td>
-                                <td>
-                                    <span t-if="commission['invoice_type']">
-                                        <span t-esc="commission['invoice_type']"/>
-                                    </span>
-                                </td>
-                                <td>
-                                    <span t-if="commission['commission']">
-                                        <t t-esc="'%.2f'% commission['commission']"/>
-                                    </span>
-                                </td>
-                            </tr>
-                            <t t-set="partner_total" t-value="partner_total + commission['commission']"/>
-                            <t t-set="total" t-value="total + commission['commission']"/>
-
-
+                              <tr>
+                                  <td>
+                                      <span>
+                                      <t t-esc="invoice_id.number"/>
+                                      </span>
+                                  </td>
+                                  <td>
+                                      <span >
+                                      <t t-esc="partner_id.name"/>
+                                      </span>
+                                  </td>
+                                  <td>
+                                      <span>
+                                      <t t-esc="rep_id.name"/>
+                                      </span>
+                                  </td>
+                                  <td>
+                                      <span>
+                                      <t t-esc="'%.2f'% commission['old_commission']"/>
+                                      </span>
+                                  </td>
+                                  <td>
+                                      <span>
+                                      <t t-esc="'%.2f'% commission['commission_audit']"/>
+                                      </span>
+                                  </td>
+                              </tr>
+                    </t>
                   </t>
-                  </t>
-                  <tr>
-                    <td colspan="5"></td>
-                    <td class="text-left">Partner Total</td>
-                    <td class="text-right"><t t-esc="'%.2f'% partner_total"/></td>
-                  </tr>
                 </t>
-                <tr>
-                  <td colspan="5"></td>
-                  <td class="text-left">Total</td>
-                  <td class="text-right"><t t-esc="'%.2f'% total"/></td>
-                </tr>
                 </tbody>
               </table>
             </div>

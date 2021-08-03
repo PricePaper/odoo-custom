@@ -5,6 +5,8 @@ from odoo.exceptions import UserError
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import calendar
+from odoo.tools import float_round
+import math
 
 
 class Reportcommission_audit(models.AbstractModel):
@@ -108,7 +110,32 @@ class Reportcommission_audit(models.AbstractModel):
                                             commission_vals[rec.sale_person_id][invoice.partner_id] = {invoice : [vals]}
                                     else:
                                         commission_vals[rec.sale_person_id] = {invoice.partner_id: {invoice : [vals]}}
-        return commission_vals
+        commission_diff = {}
+        for rep,partners in commission_vals.items():
+            for partner,invoices in partners.items():
+                for invoice, vals_list in invoices.items():
+                    commission = 0
+                    for vals in vals_list:
+                        commission += vals.get('commission')
+                    old_commission_lines = invoice.mapped('sale_commission_ids').filtered(lambda r: r.sale_person_id == rep)
+                    old_commission = old_commission_lines and sum(old_commission_lines.mapped('commission')) or 0
+
+                    if float_round(commission, precision_digits=2) != float_round(old_commission, precision_digits=2):
+                        if math.isclose(commission, old_commission, abs_tol=0.1):
+                            continue
+                        vals1={'old_commission' : float_round(old_commission, precision_digits=2),
+                              'commission_audit': float_round(commission, precision_digits=2)}
+                        if commission_diff.get(rep):
+                            if commission_diff.get(rep).get(partner):
+                                if commission_diff.get(rep).get(partner).get(invoice):
+                                    commission_diff[rep][partner][invoice].append(vals1)
+                                else:
+                                    commission_diff[rep][partner][invoice] = [vals1]
+                            else:
+                                commission_diff[rep][partner] = {invoice : [vals1]}
+                        else:
+                            commission_diff[rep] = {partner: {invoice : [vals1]}}
+        return commission_diff
 
 
     @api.model

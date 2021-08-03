@@ -1402,9 +1402,13 @@ class SaleOrderLine(models.Model):
             procurement_uom = line.product_uom
 
             try:
-                self.env['procurement.group'].run(line.product_id, product_qty, procurement_uom,
-                                                  line.order_id.partner_shipping_id.property_stock_customer, line.name,
-                                                  line.order_id.name, values)
+                self.env['procurement.group'].run(
+                    line.product_id, product_qty,
+                    procurement_uom,
+                    line.order_id.partner_shipping_id.property_stock_customer,
+                    line.name,
+                    line.order_id.name,
+                    values)
             except UserError as error:
                 errors.append(error.name)
         if errors:
@@ -1414,8 +1418,6 @@ class SaleOrderLine(models.Model):
             reassign = order.picking_ids.filtered(
                 lambda x: x.state == 'confirmed' or (x.state in ['waiting', 'assigned'] and not x.printed))
             if reassign:
-                msg = _("Extra line with %s ") % (line.product_id.display_name,)
-                reassign.message_post(body=msg)
                 reassign.action_assign()
         return True
 
@@ -1423,6 +1425,9 @@ class SaleOrderLine(models.Model):
     def create(self, vals):
 
         res = super(SaleOrderLine, self).create(vals)
+        for line in res.filtered(lambda l: l.state == 'sale'):
+            msg = _("Extra line with %s ") % (line.product_id.display_name,)
+            line.move_ids.mapped('picking_id').message_post(body=msg)
         if res.product_id.need_sub_product and res.product_id.product_addons_list:
             for p in res.product_id.product_addons_list.filtered(
                     lambda rec: rec.id not in [res.order_id.order_line.mapped('product_id').ids]):
@@ -1439,15 +1444,18 @@ class SaleOrderLine(models.Model):
             res.update_price_list()
 
         if res.note_type == 'permanant':
-            note = self.env['product.notes'].search(
-                [('product_id', '=', res.product_id.id),
-                 ('partner_id', '=', res.order_id.partner_id.id), ('expiry_date', '>', date.today())], limit=1)
+            note = self.env['product.notes'].search([
+                ('product_id', '=', res.product_id.id),
+                 ('partner_id', '=', res.order_id.partner_id.id),
+                ('expiry_date', '>', date.today())
+            ], limit=1)
             if not note:
-                self.env['product.notes'].create({'product_id': res.product_id.id,
-                                                  'partner_id': res.order_id.partner_id.id,
-                                                  'notes': res.note,
-                                                  'expiry_date': res.note_expiry_date
-                                                  })
+                self.env['product.notes'].create({
+                    'product_id': res.product_id.id,
+                    'partner_id': res.order_id.partner_id.id,
+                    'notes': res.note,
+                    'expiry_date': res.note_expiry_date
+                })
             else:
                 note.notes = res.note
                 note.expiry_date = res.note_expiry_date
