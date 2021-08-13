@@ -118,7 +118,7 @@ class ReturnPicking(models.TransientModel):
     def _prepare_move_default_values(self, return_line, new_picking):
 
         res = {}
-        res = super(ReturnPicking, self)._prepare_move_default_values(fields)
+        res = super(ReturnPicking, self)._prepare_move_default_values(return_line, new_picking)
         if res:
             vals['product_uom'] = return_line.uom_id.id
             vals['price_unit'] = return_line.move_id.price_unit
