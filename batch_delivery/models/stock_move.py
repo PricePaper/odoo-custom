@@ -23,6 +23,16 @@ class StockMove(models.Model):
     total = fields.Float(string="Subtotal", copy=False, compute='_compute_total_price', store=False)
 
 
+    @api.multi
+    def _get_price_unit(self):
+        """ Over ride to convert to move UOM"""
+        price_unit =  super(StockMove, self)._get_price_unit()
+        if self.purchase_line_id and self.product_id.id == self.purchase_line_id.product_id.id:
+            line = self.purchase_line_id
+            price_unit *=  line.product_id.uom_id.factor / line.product_uom.factor
+        return price_unit
+
+
     def receipt_move_price_fix_search(self):
         picking_lines = self.env['stock.picking'].search(
                 [('picking_type_code', '=', 'incoming'), ('state', '!=', 'cancel')]).mapped(
@@ -78,7 +88,9 @@ class StockMove(models.Model):
         new_standard_price = 0
         tmp_qty = 0
         tmp_value = 0  # to accumulate the value taken on the candidates
+        print(candidates)
         for candidate in candidates:
+            print(candidate.picking_id.name)
             new_standard_price = candidate.price_unit
             if candidate.remaining_qty <= qty_to_take_on_candidates:
                 qty_taken_on_candidate = candidate.remaining_qty
@@ -116,10 +128,12 @@ class StockMove(models.Model):
             # If the move has already been valued, it means that we editing the qty_done on the
             # move. In this case, the price_unit computation should take into account the quantity
             # already valued and the new quantity taken.
+            print(move.value, move.picking_id.name)
             if not move.value:
                 price_unit = -tmp_value / (move.product_qty or quantity)
             else:
                 price_unit = (-(tmp_value) + move.value) / (tmp_qty + move.product_qty)
+            print('pppppppppppp', price_unit)
             move.write({
                 'value': -tmp_value if not quantity else move.value or -tmp_value,  # outgoing move are valued negatively
                 'price_unit': price_unit,
