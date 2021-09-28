@@ -40,20 +40,20 @@ class AccountBankStatementLine(models.Model):
                             }]]
                     }
                     self.env['account.move'].create(move_vals).post()
-        for stmt in statement_line:
-            if 'DEPOSITED ITEM RETURNED' in stmt.name:
-                cheque_no = stmt.name and stmt.name.split('CK#:')
-                if cheque_no and len(cheque_no) > 1:
-                    cheque_no = cheque_no[1].split(' ', 1)[0]
-                    cheque_no_strip = cheque_no.lstrip('0')
-                    payment = self.env['account.payment'].search(['|', ('communication', '=', cheque_no_strip), ('communication', '=', cheque_no)], limit=1)
-                    if payment:
-                        invoice = payment.invoice_ids
-                        payment.move_line_ids.remove_move_reconcile()
-                        reconcile_lines = (payment.move_line_ids | counterpart_moves.line_ids)
-                        reconcile_lines = reconcile_lines.filtered(lambda r: not r.reconciled and r.account_id.internal_type in ('payable', 'receivable'))
-                        reconcile_lines.reconcile()
-                        invoice.remove_sale_commission(stmt.date)
+        # for stmt in statement_line:
+        #     if 'DEPOSITED ITEM RETURNED' in stmt.name:
+        #         cheque_no = stmt.name and stmt.name.split('CK#:')
+        #         if cheque_no and len(cheque_no) > 1:
+        #             cheque_no = cheque_no[1].split(' ', 1)[0]
+        #             cheque_no_strip = cheque_no.lstrip('0')
+        #             payment = self.env['account.payment'].search(['|', ('communication', '=', cheque_no_strip), ('communication', '=', cheque_no)], limit=1)
+        #             if payment:
+        #                 invoice = payment.invoice_ids
+        #                 payment.move_line_ids.remove_move_reconcile()
+        #                 reconcile_lines = (payment.move_line_ids | counterpart_moves.line_ids)
+        #                 reconcile_lines = reconcile_lines.filtered(lambda r: not r.reconciled and r.account_id.internal_type in ('payable', 'receivable'))
+        #                 reconcile_lines.reconcile()
+        #                 invoice.remove_sale_commission(stmt.date)
         return counterpart_moves
 
 AccountBankStatementLine()

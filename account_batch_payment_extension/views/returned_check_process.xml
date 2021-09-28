@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_process_returned_check_tree" model="ir.ui.view">
+            <field name="name">process.returned.check.tree</field>
+            <field name="model">process.returned.check</field>
+            <field name="arch" type="xml">
+                <tree string="Process Returned Check" delete="0">
+                  <field name="bank_stmt_line_id" />
+                  <field name="payment_id"/>
+                  <field name="check_no"/>
+                  <field name="partner_id"/>
+                  <field name="state" />
+                </tree>
+            </field>
+        </record>
+
+        <record id="view_process_returned_check_search" model="ir.ui.view">
+            <field name="name">process.returned.check.search</field>
+            <field name="model">process.returned.check</field>
+            <field name="arch" type="xml">
+                <search string="Search Process Returned Check">
+                  <field name="bank_stmt_line_id"/>
+                  <field name="payment_id" />
+                  <field name="partner_id"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="view_process_returned_check_form" model="ir.ui.view">
+            <field name="name">process.returned.check.form</field>
+            <field name="model">process.returned.check</field>
+            <field name="arch" type="xml">
+                <form string="Process Returned Check" delete="0">
+                  <header>
+                      <button name="process_payment"
+                              string="Process" type="object" class="oe_highlight"
+                              attrs="{'invisible':[('state', 'in', ('done', 'cancel'))]}"
+                      />
+                      <button name="action_cancel"
+                              string="Cancel" type="object"
+                              attrs="{'invisible':[('state', 'in', ('done', 'cancel'))]}"
+                      />
+
+                      <field name="state" widget="statusbar" statusbar_visible="draft,done,cancel"/>
+                  </header>
+                    <sheet>
+
+                        <group>
+                            <group>
+                                <field name="bank_stmt_line_id" required='1' attrs="{'readonly':[('state', 'in', ('done', 'cancel'))]}"/>
+                                <field name="payment_id" required='1' attrs="{'readonly':[('state', 'in', ('done', 'cancel'))]}"/>
+                                <field name="check_no"/>
+                                <field name="partner_id"/>
+                            </group>
+                        </group>
+                    </sheet>
+                    <div class="oe_chatter">
+                        <field name="message_follower_ids" widget="mail_followers" groups="base.group_user"/>
+                        <field name="message_ids" widget="mail_thread"/>
+                    </div>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_process_returned_check" model="ir.actions.act_window">
+            <field name="name">Process Returned Check</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">process.returned.check</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="help" type="html">
+                <p>
+                    Create Record to Process Returned Check.
+                </p>
+            </field>
+        </record>
+        <menuitem action="action_process_returned_check" id="menu_process_returned_check"
+                  name="Process Returned Check"
+                  parent="account.menu_finance_receivables" sequence="20"/>
+    </data>
+</odoo>
