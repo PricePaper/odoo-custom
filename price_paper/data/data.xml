@@ -25,13 +25,31 @@ for rec in records and records.filtered(lambda r: r.storage_contract) or model.s
             </field>
             <field eval="True" name="active"/>
             <field name="user_id" ref="base.user_root"/>
-            <field name="binding_model_id" ref="model_sale_order"/>
+            <field name="binding_model_id"></field>
             <field name="interval_number">1</field>
             <field name="interval_type">days</field>
             <field name="numbercall">-1</field>
             <field eval="False" name="doall"/>
         </record>
 
+        <record id="action_duplicate_sale_order" model="ir.actions.server">
+          <field name="name">SO: Duplicate</field>
+          <field name="model_id" ref="sale.model_sale_order"/>
+          <field name="binding_model_id" ref="sale.model_sale_order"/>
+          <field name="state">code</field>
+          <field name="code">
+new_records = env['sale.order']
+for rec in records:
+  new_records |= rec.copy()
+action_rec = env.ref('sale.action_quotations_with_onboarding')
+action = action_rec.read()[0]
+if len(new_records) > 1:
+  action['domain'] = [('id', 'in', new_records.ids)]
+elif len(new_records) == 1:
+  action['views'] = [(env.ref('sale.view_order_form').id, 'form')]
+  action['res_id'] = new_records.ids[0]
+          </field>
+    </record>
         <record forcecreate="True" id="ir_cron_sale_history" model="ir.cron">
             <field name="name">Sales History Creation</field>
             <field name="model_id" ref="model_sale_history"/>
