@@ -7,9 +7,8 @@
             <field name="arch" type="xml">
                 <tree string="Process Returned Check" delete="0">
                   <field name="bank_stmt_line_id" />
-                  <field name="payment_id"/>
-                  <field name="check_no"/>
-                  <field name="partner_id"/>
+                  <field name="payment_ids" widget="many2many_tags"/>
+                  <field name="partner_ids" widget="many2many_tags"/>
                   <field name="state" />
                 </tree>
             </field>
@@ -21,8 +20,7 @@
             <field name="arch" type="xml">
                 <search string="Search Process Returned Check">
                   <field name="bank_stmt_line_id"/>
-                  <field name="payment_id" />
-                  <field name="partner_id"/>
+                  <field name="partner_ids"/>
                 </search>
             </field>
         </record>
@@ -45,13 +43,32 @@
                       <field name="state" widget="statusbar" statusbar_visible="draft,done,cancel"/>
                   </header>
                     <sheet>
+                      <div class="oe_button_box" name="button_box">
+                          <button name="action_view_invoice"
+                              type="object"
+                              class="oe_stat_button"
+                              icon="fa-pencil-square-o"
+                              attrs="{'invisible': [('invoice_count', '=', 0)]}">
+                              <field name="invoice_count" widget="statinfo" string="Invoices"/>
+                          </button>
+                      </div>
 
                         <group>
                             <group>
-                                <field name="bank_stmt_line_id" required='1' attrs="{'readonly':[('state', 'in', ('done', 'cancel'))]}"/>
-                                <field name="payment_id" required='1' attrs="{'readonly':[('state', 'in', ('done', 'cancel'))]}"/>
-                                <field name="check_no"/>
-                                <field name="partner_id"/>
+                                <field name="bank_stmt_line_id" required='1' attrs="{'readonly':[('state', 'in', ('done', 'cancel'))]}"
+                                    domain="[('name', 'like', 'DEPOSITED ITEM RETURNED'), ('is_return_cleared', '=', False),
+                                    ('move_name', '!=', False)]"/>
+                                <field name="partner_ids" attrs="{'readonly':[('state', 'in', ('done', 'cancel'))]}" force_save="1"
+                                    widget="many2many_tags" options="{'no_create': True}"/>
+                                <field name="payment_ids" required='1' attrs="{'readonly':[('state', 'in', ('done', 'cancel'))]}"
+                                         widget="many2many_tags" options="{'no_create': True}" force_save="1"
+                                         context="{'from_return_check_process': True}"
+                                         domain="['|', '&amp;', '&amp;', '&amp;', '&amp;', ('payment_type', '=', 'inbound'), ('partner_id', '=', partner_ids),
+                                             ('payment_method_id.code', 'in', ('check_printing_in', 'batch_payment')),
+                                             ('is_return_cleared', '=', False), ('state', 'not in', ('done', 'cancelled')), '&amp;',
+                                             ('is_return_cleared', '=', True), ('state', '=', 'done')
+                                             ]"/>
+
                             </group>
                         </group>
                     </sheet>
