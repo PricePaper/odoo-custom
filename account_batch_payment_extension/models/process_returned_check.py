@@ -7,7 +7,7 @@ from odoo.exceptions import UserError
 class ProcessReturnedCheck(models.Model):
     _inherit = ['mail.thread']
     _name = 'process.returned.check'
-    _description = 'Procedd Returned Check'
+    _description = 'Process Returned Check'
 
     bank_stmt_line_id = fields.Many2one('account.bank.statement.line',
         string='Bank statement line')
@@ -20,6 +20,7 @@ class ProcessReturnedCheck(models.Model):
         ('cancel', 'Cancelled')], default='draft',
         copy=False, track_visibility='onchange', required=True)
     invoice_count = fields.Integer(string='Invoice Count', compute='_get_invoice_count', readonly=True)
+    notes = fields.Text(string='Notes')
 
     @api.depends('invoice_ids')
     def _get_invoice_count(self):
