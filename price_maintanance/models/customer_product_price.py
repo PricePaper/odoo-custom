@@ -51,25 +51,46 @@ class CustomerProductPrice(models.Model):
 
     @api.depends('partner_id', 'product_id')
     def _get_last_sale_details(self):
+        record_read = self.search_read([('id', 'in', self.ids)], ['product_id', 'partner_id'])
+        product_ids = partner_ids = []
+        if record_read:
+            product_ids = list(map(lambda r: r['product_id'] and r['product_id'][0], record_read))
+            partner_ids = list(map(lambda r: r['partner_id'] and r['partner_id'][0], record_read))
+        sale_history = self.env['sale.history'].search([
+            ('product_id', 'in', product_ids),
+            ('partner_id', 'in', partner_ids)
+        ])
+        tax_records = self.env['sale.tax.history'].search([
+            ('product_id', 'in', product_ids),
+            ('partner_id', 'in', partner_ids)
+        ])
+        records = [{
+            'order_date': line.order_date,
+            'id': line.id,
+            'price_unit': line.order_line_id.price_unit,
+            'product_uom_qty': line.order_line_id.product_uom_qty
+        } for line in sale_history]
         for record in self:
-            res = {}
             pr_id = record.product_id.id
             if not isinstance(pr_id, int):
-                record_read = record.search_read([('id', '=', record.id)], ['product_id'])
-                pr_id = record_read and record_read[0].get('product_id', ()) and record_read[0].get('product_id', ())[0]
+                history = list(filter(lambda r: r['id'] == record.id, record_read))
+                pr_id = history[0]['product_id'][0] if history else False
+
             if record.pricelist_id.type != 'customer':
                 continue
             if record.partner_id and pr_id:
-                res = self.env['sale.history'].search([('product_id', '=', pr_id),
-                                                       ('partner_id', '=', record.partner_id.id),
-                                                       ('uom_id', '=', record.product_uom.id)], limit=1)
-
-                if res:
-                    record.last_sale_date = res.order_date
-                    record.last_sale_price = res.order_line_id.price_unit
-                    record.last_quantity_sold = res.order_line_id.product_uom_qty
-                tax_res = self.env['sale.tax.history'].search(
-                    [('product_id', '=', pr_id), ('partner_id', '=', record.partner_id.id)])
+                history_record = sale_history.filtered(
+                    lambda r: r.product_id.id == record.product_id.id and r.partner_id.id == record.partner_id.id and r.uom_id.id == record.product_uom.id
+                )
+                if history_record:
+                    history_data = list(filter(lambda data: data['id'] in history_record.ids, records))
+                    if history_data:
+                        record.last_sale_date = history_data[0]['order_date']
+                        record.last_sale_price = history_data[0]['price_unit']
+                        record.last_quantity_sold = history_data[0]['product_uom_qty']
+                tax_res = tax_records.filtered(
+                    lambda r: r.product_id.id == record.product_id.id and r.partner_id.id == record.partner_id.id
+                )
                 if tax_res and tax_res.tax:
                     record.is_taxable = True
                 else:
