@@ -58,7 +58,7 @@
                                 <field name="bank_stmt_line_id" required='1' attrs="{'readonly':[('state', 'in', ('done', 'cancel'))]}"
                                     domain="[('name', 'like', 'DEPOSITED ITEM RETURNED'), ('is_return_cleared', '=', False),
                                     ('move_name', '!=', False)]"/>
-                                <field name="partner_ids" attrs="{'readonly':[('state', 'in', ('done', 'cancel'))]}" force_save="1"
+                                <field name="partner_ids" required='1' attrs="{'readonly':[('state', 'in', ('done', 'cancel'))]}" force_save="1"
                                     widget="many2many_tags" options="{'no_create': True}"/>
                                 <field name="payment_ids" required='1' attrs="{'readonly':[('state', 'in', ('done', 'cancel'))]}"
                                          widget="many2many_tags" options="{'no_create': True}" force_save="1"
