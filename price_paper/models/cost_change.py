@@ -8,10 +8,75 @@ from odoo import fields, models, api, _
 from odoo.exceptions import ValidationError
 from odoo.tools import float_round
 
+class CostChangeParent(models.Model):
+    _name = 'cost.change.parent'
+    _description = 'Cost Change'
+
+    # item_filter = fields.Selection([('product', 'Product'), ('vendor', 'Vendor and/or Product Category')],
+                                   # string='Update Cost of', default='product')
+    # price_filter = fields.Selection([('percentage', '%'), ('fixed', 'Fix to an Amount')], string='Increase Cost as',
+                                    # default='fixed',
+                                    # help='Percentage: increase cost by percentage \n Fix to an Amount: sets the price to the specified fixed amount')
+    vendor_id = fields.Many2one('res.partner', string="Vendor", domain=[('supplier', '=', True)])
+    category_id = fields.Many2many('product.category', string="Product Category")
+    is_done = fields.Boolean(string='Done', copy=False, default=False)
+    run_date = fields.Date('Update Date', default=fields.Date.context_today, copy=False)
+    update_customer_pricelist = fields.Boolean('Update Customer Pricelist', default=True)
+    update_vendor_pricelist = fields.Boolean('Update Vendor Pricelist', default=True)
+    update_standard_price = fields.Boolean('Update Standard Price', default=True)
+    update_burden = fields.Boolean('Update Burden%')
+    cost_change_lines = fields.One2many('cost.change', 'cost_change_parent', string='Lines')
+    user_id = fields.Many2one('res.users', string='User', default=lambda self: self.env.user)
+    product_ids = fields.Many2many('product.product', string="Products", compute='_compute_product_ids')
+
+    @api.depends('vendor_id', 'category_id')
+    def _compute_product_ids(self):
+        for rec in self:
+            domain = []
+            if rec.vendor_id:
+                product_ids = self.env['product.supplierinfo'].search([('name', '=', rec.vendor_id.id), ('product_id', '!=', False)]).mapped('product_id')
+                domain.append(('id', 'in', product_ids.ids))
+            if rec.category_id:
+                domain.append(('categ_id.id', 'child_of', rec.category_id.ids))
+            products = self.env['product.product'].search(domain)
+            if products:
+                rec.product_ids = products.ids
+            else:
+                rec.product_ids = False
+
+    @api.model
+    def cost_change_cron(self):
+
+        recs = self.env['cost.change.parent'].search([('is_done', '!=', 'True'), ('run_date', '<=', date.today())])
+        for rec in recs:
+            for line in rec.cost_change_lines:
+                line.cost_change_method()
+            rec.is_done = True
+        return True
+
+    @api.multi
+    def cost_change_method(self):
+        for rec in self:
+            for line in rec.cost_change_lines:
+                line.cost_change_method()
+            rec.is_done = True
+    @api.multi
+    @api.depends('run_date')
+    def name_get(self):
+        result = []
+        for record in self:
+            name = "%s" % (record.run_date)
+            result.append((record.id, name))
+        return result
+
+
+
+CostChangeParent()
+
 
 class CostChange(models.Model):
     _name = 'cost.change'
-    _description = 'Cost Change'
+    _description = 'Cost Change Lines'
 
     item_filter = fields.Selection([('product', 'Product'), ('vendor', 'Vendor and/or Product Category')],
                                    string='Update Cost of', default='product')
@@ -35,11 +100,12 @@ class CostChange(models.Model):
     burden_old = fields.Float(string='Old Burden%')
     update_burden = fields.Boolean('Update Burden%')
     user_id = fields.Many2one('res.users', string='User', default=lambda self: self.env.user)
+    cost_change_parent = fields.Many2one('cost.change.parent', string='Cost change Record')
 
     @api.depends('new_cost', 'old_cost')
     def compute_price_difference_percent(self):
         for rec in self:
-            if rec.item_filter == 'product' and rec.product_id:
+            if rec.product_id:
                 rec.price_difference = rec.price_change and rec.new_cost - rec.old_cost
                 rec.price_difference_per = rec.price_change and rec.old_cost and (
                             100 * (rec.new_cost - rec.old_cost)) / rec.old_cost or 0.00
@@ -47,25 +113,22 @@ class CostChange(models.Model):
                 rec.price_difference = 0.00
                 rec.price_difference_per = 0.00
 
-    @api.depends('item_filter', 'product_id')
+    @api.depends('product_id')
     def set_old_price(self):
         for rec in self:
-            if rec.item_filter == 'product' and rec.product_id:
+            if rec.product_id:
                 rec.old_cost = rec.product_id.standard_price
                 rec.burden_old = rec.product_id.burden_percent
                 vendors = rec.product_id.seller_ids.mapped('name')
                 vendors = vendors and vendors.ids
 
-                if vendors:
-                    return {'domain': {'vendor_id': [('id', 'in', vendors)]}}
             else:
                 rec.old_cost = 0.00
-                return {'domain': {'vendor_id': [('supplier', '=', 'True')]}}
 
     @api.onchange('update_burden', 'product_id')
     def onchange_update_burden(self):
         for rec in self:
-            if rec.item_filter == 'product' and rec.update_burden and rec.product_id:
+            if rec.update_burden and rec.product_id:
                 rec.burden_change = rec.product_id.burden_percent
             else:
                 rec.burden_change = 0.00
@@ -81,7 +144,7 @@ class CostChange(models.Model):
     @api.depends('old_cost', 'price_change', 'price_filter')
     def compute_new_cost(self):
         for rec in self:
-            if rec.item_filter == 'product' and rec.price_change:
+            if rec.price_change:
                 if rec.price_filter == 'fixed':
                     rec.new_cost = rec.price_change
                 else:
@@ -90,75 +153,23 @@ class CostChange(models.Model):
             else:
                 rec.new_cost == 0.00
 
-    @api.onchange('item_filter')
-    def onchange_item_filter(self):
-        for rec in self:
-            if not self._context.get('product_id', False):
-                rec.product_id = False
-            rec.vendor_id = False
-            rec.category_id = False
-            if rec.item_filter in ['vendor']:
-                rec.price_filter = 'percentage'
-
-    @api.onchange('burden_change', 'price_change')
-    def onchange_price_increase(self):
-        for rec in self:
-            warning = False
-            if not rec.update_customer_pricelist or not rec.update_standard_price:
-                if rec.price_filter == 'fixed':
-                    if rec.old_cost < rec.price_change:
-                        warning = True
-                    if rec.product_id and rec.product_id.burden_percent < rec.burden_change:
-                        warning = True
-                else:
-                    if rec.price_change > 0 or rec.burden_change > 0:
-                        warning = True
-            if warning:
-                return {'warning': {'title': _('Not selected'),
-                                    'message': "Price or burden is increasing and Update Customer Pricelist and/or Update Standard Price is not checked."}}
-
-    @api.onchange('product_id')
-    def onchange_product_id(self):
-        for rec in self:
-            rec.vendor_id = False
-            rec.category_id = False
-            if rec.item_filter == 'product':
-                #                if rec.product_id:
-                #                    rec.price_change = rec.product_id.standard_price
-                if rec.product_id and rec.product_id.seller_ids:
-                    seller = rec.product_id.seller_ids.sorted(key=lambda x: x.sequence)[0]
-                    rec.vendor_id = seller.name
-                if rec.product_id and rec.product_id.categ_id:
-                    rec.category_id = rec.product_id.categ_id
 
     @api.multi
     def cost_change_method(self):
 
-        product_obj = self.env['product.product']
-        products_to_filter = self.env['product.product']
-        for rec in self:
-            if rec.item_filter == 'product':
-                products_to_filter |= product_obj.search([('id', '=', rec.product_id.id)])
-            elif rec.item_filter == 'vendor':
-                vendor_products = product_obj.search([('seller_ids', '!=', False)])
-                vendor_products = vendor_products.filtered(lambda r: r.seller_ids[0].name.id == rec.vendor_id.id)
-                products_to_filter |= vendor_products
-                if rec.category_id:
-                    categ_products = product_obj.search([('categ_id', 'in', rec.category_id.ids)])
-                    products_to_filter = products_to_filter & categ_products
 
+        for rec in self:
             # Update list price
-            if rec.update_standard_price:
-                for product in products_to_filter:
-                    rec.calculate_new_stdprice(product)
-                    standard_price_days = self.env.user.company_id.standard_price_config_days or 75
-                    product.standard_price_date_lock = date.today() + relativedelta(days=standard_price_days)
+            product = rec.product_id
+            if rec.cost_change_parent.update_standard_price:
+                rec.calculate_new_stdprice(product)
+                standard_price_days = self.env.user.company_id.standard_price_config_days or 75
+                product.standard_price_date_lock = date.today() + relativedelta(days=standard_price_days)
 
             # Update Customer pricelist
-            if rec.update_customer_pricelist:
+            if rec.cost_change_parent.update_customer_pricelist:
                 customer_price_lists = self.env['customer.product.price'].search(
-                    [('product_id', 'in', products_to_filter.ids)]).filtered(
-                    lambda r: r.pricelist_id.type != 'competitor')
+                    [('product_id', '=', product.id), ('pricelist_id.type', '!=', 'competitor')])
                 today = date.today()
                 for price_list_rec in customer_price_lists:
                     # skips the update pricelist if expiry lock is active and lock expiry date is set
@@ -174,16 +185,10 @@ class CostChange(models.Model):
                     if price_list_rec.price != new_price:
                         price_list_rec.with_context({'user': self.user_id and self.user_id.id, 'cost_cron': True}).price = new_price
 
-            # Update vendor pricelist
-            if rec.update_vendor_pricelist and rec.item_filter == 'vendor':
-                vendor_price_ids = self.env['product.supplierinfo'].search([('name', '=', rec.vendor_id.id)])
+            # Update vendor price
+            if rec.cost_change_parent.update_vendor_pricelist and rec.cost_change_parent.vendor_id:
 
-                for vendor_price in vendor_price_ids:
-                    vendor_price.with_context({'user': self.user_id and self.user_id.id, 'cost_cron': True}).price = vendor_price.price * ((100 + rec.price_change) / 100)
-
-            # Update vendor price for single product
-            if rec.item_filter == 'product' and rec.vendor_id:
-                supplier_info = rec.product_id.seller_ids.filtered(lambda r: r.name == rec.vendor_id)
+                supplier_info = product.seller_ids.filtered(lambda r: r.name == rec.cost_change_parent.vendor_id)
                 if rec.price_filter == 'fixed':
                     supplier_info.with_context({'user': self.user_id and self.user_id.id, 'cost_cron': True}).write({'price': rec.price_change})
                 else:
@@ -191,28 +196,26 @@ class CostChange(models.Model):
 
             # Update Fixed Cost
             if rec.price_filter == 'fixed':
-                products_to_filter.with_context({'user': self.user_id and self.user_id.id, 'cost_cron': True}).write(
+                product.with_context({'user': self.user_id and self.user_id.id, 'cost_cron': True}).write(
                     {'standard_price': rec.price_change})
             else:
-                for product in products_to_filter:
-                    product.with_context(
-                        {'user': self.user_id and self.user_id.id, 'cost_cron': True}).standard_price = float_round(product.standard_price * (
-                                (100 + rec.price_change) / 100), precision_digits=2)
+                product.with_context(
+                    {'user': self.user_id and self.user_id.id, 'cost_cron': True}).standard_price = float_round(product.standard_price * (
+                            (100 + rec.price_change) / 100), precision_digits=2)
             # Update burden%
             if rec.update_burden and rec.burden_change:
-                for product in products_to_filter:
-                    product.with_context({'user': self.user_id and self.user_id.id, 'cost_cron': True}).write(
-                        {'burden_percent': rec.burden_change})
+                product.with_context({'user': self.user_id and self.user_id.id, 'cost_cron': True}).write(
+                    {'burden_percent': rec.burden_change})
             rec.is_done = True
         return True
 
-    @api.model
-    def cost_change_cron(self):
-
-        recs = self.env['cost.change'].search([('is_done', '!=', 'True'), ('run_date', '<=', date.today())])
-        for rec in recs:
-            rec.cost_change_method()
-        return True
+    # @api.model
+    # def cost_change_cron(self):
+    #
+    #     recs = self.env['cost.change'].search([('is_done', '!=', 'True'), ('run_date', '<=', date.today())])
+    #     for rec in recs:
+    #         rec.cost_change_method()
+    #     return True
 
     def calculate_new_stdprice(self, product):
         for rec in product.uom_standard_prices:
