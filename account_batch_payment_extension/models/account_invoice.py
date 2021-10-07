@@ -10,6 +10,8 @@ class Accountinvoice(models.Model):
 
     def remove_sale_commission(self, invoice_date):
 
+        invoice_fine = self.env['account.invoice']
+
         for invoice in self:
             commission_rec = self.env['sale.commission'].search([
                 ('invoice_id', '=', invoice.id), ('is_paid', '=', True),
@@ -50,8 +52,11 @@ class Accountinvoice(models.Model):
         check_bounce_term = invoice.company_id.check_bounce_term or False
         if not check_bounce_term:
             raise UserError(_('Check Bounce Payment Term is not configured in Company'))
-        invoice = self and self[0]
-        if invoice:
+        partner_list = []
+        bounce_invoice = []
+        for invoice in self:
+            if invoice.partner_id.id in partner_list:
+                continue
             fpos = invoice.fiscal_position_id
             account = check_bounce_product.product_tmpl_id.get_product_accounts(fpos)
             if account and account.get('income', ''):
@@ -79,7 +84,9 @@ class Accountinvoice(models.Model):
                 'check_bounce_invoice': True
             }
             invoice_fine = self.env['account.invoice'].create(invoice_vals)
-        return True
+            bounce_invoice.append(invoice_fine.id)
+            partner_list.append(invoice.partner_id.id)
+        return bounce_invoice
 
 
 Accountinvoice()
