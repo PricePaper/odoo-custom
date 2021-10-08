@@ -1,8 +1,11 @@
-from odoo import models, api
+# -*- coding: utf-8 -*-
 
+from odoo import models, api, fields
 
 class AccountPayment(models.Model):
     _inherit = 'account.payment'
+
+    is_return_cleared = fields.Boolean('Return cleared')
 
     def action_delete_from_db(self):
         self.batch_payment_id.message_post(body='Payment line removed.')

@@ -3,18 +3,14 @@
     <data>
         <record id="view_cost_change_tree" model="ir.ui.view">
             <field name="name">cost.change.tree</field>
-            <field name="model">cost.change</field>
+            <field name="model">cost.change.parent</field>
             <field name="arch" type="xml">
                 <tree>
-                    <field name="item_filter"/>
                     <field name="vendor_id"/>
-                    <field name="product_id"/>
                     <field name="run_date"/>
-                    <field name="old_cost"/>
-                    <field name="price_change"/>
-                    <field name="price_filter"/>
                     <field name="update_standard_price"/>
                     <field name="update_customer_pricelist"/>
+                    <field name="update_vendor_pricelist"/>
                     <field name="update_burden"/>
                 </tree>
             </field>
@@ -22,13 +18,13 @@
 
         <record id="view_cost_change_search" model="ir.ui.view">
             <field name="name">cost.change.search</field>
-            <field name="model">cost.change</field>
+            <field name="model">cost.change.parent</field>
             <field name="arch" type="xml">
                 <search string="Search Future Cost Change">
                     <filter name="todo" string="To Do" domain="[('is_done','=', False)]" help="To Do Records"/>
-                    <field name="product_id"/>
                     <field name="vendor_id"/>
                     <field name="run_date"/>
+                    <field name="cost_change_lines" string="Product" filter_domain="[('cost_change_lines.product_id', 'ilike', self)]"/>
                     <group expand="0" string="Group By">
                         <filter string="Update Date" name="groupby_date" domain="[]" context="{'group_by':'run_date'}"/>
                     </group>
@@ -38,7 +34,7 @@
 
         <record id="view_cost_change_form" model="ir.ui.view">
             <field name="name">cost.change.form</field>
-            <field name="model">cost.change</field>
+            <field name="model">cost.change.parent</field>
             <field name="arch" type="xml">
                 <form string="Cost Change">
                     <sheet>
@@ -48,64 +44,79 @@
                                 <field name="is_done" invisible='1'/>
                                 <field name="update_standard_price" attrs="{'readonly':[('is_done', '=', True)]}"/>
                                 <field name="update_customer_pricelist" attrs="{'readonly':[('is_done', '=', True)]}"/>
-                            </group>
-                        </group>
-                        <group>
-                            <group>
-                                <field name="item_filter" widget="radio" required='1'
-                                       attrs="{'readonly':[('is_done', '=', True)]}"/>
+                                <field name="user_id" invisible="1"/>
+                                <field name="product_ids" invisible="1"/>
                             </group>
                             <group>
-                                <field name="product_id" options="{'no_create': True, 'no_edit': True}"
-                                       attrs="{'invisible': [('item_filter', '!=', 'product')], 'readonly':[('is_done', '=', True)], 'required': [('item_filter', '=', 'product')]}"/>
                                 <field name="vendor_id" domain="[('supplier', '=', 'True')]"
                                        options="{'no_create': True, 'no_edit': True}"
-                                       attrs="{'readonly':[('is_done', '=', True)], 'required': [('item_filter', '=', 'vendor')]}"/>
+                                       attrs="{'readonly':[('is_done', '=', True)]}"/>
                                 <field name="update_vendor_pricelist"
-                                       attrs="{'invisible': [('item_filter', '!=', 'vendor')], 'readonly':[('is_done', '=', True)]}"/>
+                                       attrs="{'readonly':[('is_done', '=', True)]}"/>
+                                <field name="update_burden"
+                                       attrs="{'readonly':[('is_done', '=', True)]}"/>
                                 <field name="category_id" widget="many2many_tags"
-                                       attrs="{'invisible': [('item_filter', '!=', 'vendor')], 'readonly':[('is_done', '=', True)]}"/>
+                                       attrs="{'readonly':[('is_done', '=', True)]}"/>
                             </group>
                         </group>
-                        <group>
-                            <group>
-                                <field name="price_filter" widget="radio" required='1'
-                                       attrs="{'readonly':[('is_done', '=', True)], 'invisible':[('item_filter', '!=', 'product')]}"/>
-                            </group>
-                            <group>
-                                <label for="price_change" string="Cost Change"/>
-                                <div>
-                                    <field name="price_change" attrs="{'readonly':[('is_done', '=', True)]}"
-                                           class="oe_inline"/>
-                                    <b><span attrs="{'invisible':[('price_filter', '!=', 'percentage')]}">%</span></b>
-                                </div>
-                            </group>
-                            <group>
-                                <field name="update_burden" attrs="{'readonly':[('is_done', '=', True)]}"/>
-                            </group>
-                            <group>
-                                <field name="burden_change"
-                                       attrs="{'readonly':[('is_done', '=', True)], 'invisible':[('update_burden', '!=', True)]}"
-                                       class="oe_inline"/>
-                            </group>
-                            <group>
-                                <field name="burden_old" attrs="{'invisible':[('item_filter', '!=', 'product')]}"/>
-                                <field name="old_cost" attrs="{'invisible':[('item_filter', '!=', 'product')]}"/>
-                                <field name="new_cost"
-                                       attrs="{'invisible':['|',('item_filter', '!=', 'product'), ('is_done', '=', True)]}"/>
-                                <field name="is_done" invisible="1"/>
-                                <field name="user_id" invisible="1"/>
-                                <button string="Apply Immediately" attrs="{'invisible':[('is_done', '=', True)]}"
-                                        confirm="You are going to change the Cost. Are you sure you want to proceed? "
-                                        type="object" name="cost_change_method" class="oe_read_only oe_highlight"/>
-                            </group>
-                            <group>
-                                <field name="price_difference"
-                                       attrs="{'invisible':['|', ('item_filter', '!=', 'product'), ('is_done', '=', True)]}"/>
-                                <field name="price_difference_per"
-                                       attrs="{'invisible':['|', ('item_filter', '!=', 'product'), ('is_done', '=', True)]}"/>
-                            </group>
-                        </group>
+                        <div>
+                            <separator string="PRICE CHANGE LINES"/>
+                            <field name="cost_change_lines" mode="tree">
+                                <tree>
+                                    <field name="product_id" required='1' />
+                                    <field name="price_filter"/>
+                                    <field name="price_change" required='1'/>
+                                    <field name="old_cost"/>
+                                    <field name="new_cost"/>
+                                    <field name="price_difference"/>
+                                    <field name="price_difference_per"/>
+
+                                    <field name="burden_change"
+                                           attrs="{'readonly':[('parent.is_done', '=', True)], 'column_invisible':[('parent.update_burden', '!=', True)]}"/>
+
+                                </tree>
+                                <form>
+                                    <group>
+                                        <group>
+                                            <field name="product_id" required='1' attrs="{'readonly':[('parent.is_done', '=', True)]}"/>
+                                            <field name="price_filter" widget="radio" required='1'
+                                                   attrs="{'readonly':[('parent.is_done', '=', True)]}"/>
+                                        </group>
+                                        <group>
+                                            <label for="price_change" string="Cost Change"/>
+                                            <div>
+                                                <field name="price_change" attrs="{'readonly':[('parent.is_done', '=', True)]}"
+                                                       class="oe_inline"/>
+                                                <b><span attrs="{'invisible':[('price_filter', '!=', 'percentage')]}">%</span></b>
+                                            </div>
+                                        </group>
+                                        <group>
+                                            <field name="burden_change"
+                                                   attrs="{'readonly':[('parent.is_done', '=', True)], 'invisible':[('parent.update_burden', '!=', True)]}"
+                                                   class="oe_inline"/>
+                                        </group>
+                                        <group>
+                                            <field name="burden_old"/>
+                                            <field name="old_cost"/>
+                                            <field name="new_cost"/>
+                                            <field name="is_done" invisible="1"/>
+                                            <field name="user_id" invisible="1"/>
+
+                                        </group>
+                                        <group>
+                                            <field name="price_difference"
+                                                   attrs="{'invisible':[('is_done', '=', True)]}"/>
+                                            <field name="price_difference_per"
+                                                   attrs="{'invisible':[('is_done', '=', True)]}"/>
+                                        </group>
+                                    </group>
+                                </form>
+                            </field>
+                            <button string="Apply Immediately" attrs="{'invisible':[('is_done', '=', True)]}"
+                                    confirm="You are going to change the Cost. Are you sure you want to proceed? "
+                                    type="object" name="cost_change_method" class="oe_read_only oe_highlight"/>
+                        </div>
+
                     </sheet>
                 </form>
             </field>
@@ -114,7 +125,7 @@
         <record id="action_cost_change" model="ir.actions.act_window">
             <field name="name">Cost Change Cron</field>
             <field name="type">ir.actions.act_window</field>
-            <field name="res_model">cost.change</field>
+            <field name="res_model">cost.change.parent</field>
             <field name="view_type">form</field>
             <field name="view_mode">tree,form</field>
             <field name="context">{'search_default_todo': 1}</field>

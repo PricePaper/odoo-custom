@@ -3,7 +3,7 @@
     <data>
         <record forcecreate="True" id="ir_cron_cost_change" model="ir.cron">
             <field name="name">Cost change</field>
-            <field name="model_id" ref="model_cost_change"/>
+            <field name="model_id" ref="model_cost_change_parent"/>
             <field name="state">code</field>
             <field name="code">model.cost_change_cron()</field>
             <field eval="True" name="active"/>
