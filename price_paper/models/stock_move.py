@@ -42,7 +42,7 @@ class StockMove(models.Model):
 
             return (res[0], res[1], res[2], valuation_account.id)
 
-        if self._context.get('from_inv_adj', False):
+        if self._context.get('from_inv_adj', False) or self._context.get('is_scrap', False):
             acc_src = False
             acc_dest = False
             if self.product_id.categ_id.inv_adj_input_account_id:
