@@ -55,6 +55,20 @@ class CostChangeParent(models.Model):
         return True
 
     @api.multi
+    def add_percentage_lines(self):
+        view_id = self.env.ref('price_paper.view_cost_change_percentage_wiz').id
+
+        return {
+            'name': _('Cost Change Cron'),
+            'view_type': 'form',
+            'view_mode': 'form',
+            'res_model': 'cost.change.percentage',
+            'view_id': view_id,
+            'type': 'ir.actions.act_window',
+            'target': 'new'
+        }
+
+    @api.multi
     def cost_change_method(self):
         for rec in self:
             for line in rec.cost_change_lines:
@@ -186,7 +200,7 @@ class CostChange(models.Model):
                         price_list_rec.with_context({'user': self.user_id and self.user_id.id, 'cost_cron': True}).price = new_price
 
             # Update vendor price
-            if rec.cost_change_parent.update_vendor_pricelist and rec.cost_change_parent.vendor_id:
+            if rec.cost_change_parent.vendor_id:
 
                 supplier_info = product.seller_ids.filtered(lambda r: r.name == rec.cost_change_parent.vendor_id)
                 if rec.price_filter == 'fixed':
