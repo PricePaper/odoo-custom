@@ -1092,11 +1092,11 @@ class SaleOrderLine(models.Model):
         for line in self:
             line.product_onhand = line.product_id.qty_available - line.product_id.outgoing_qty
 
-    @api.depends('product_uom_qty', 'qty_delivered', 'storage_contract_line_ids')
+    @api.depends('product_uom_qty', 'qty_delivered', 'storage_contract_line_ids', 'state')
     def _compute_storage_delivered_qty(self):
         for line in self:
             if line.order_id.storage_contract:
-                sale_lines = line.storage_contract_line_ids.filtered(lambda r: r.order_id.state != 'draft')
+                sale_lines = line.storage_contract_line_ids.filtered(lambda r: r.order_id.state not in ['draft', 'cancel'])
                 if not line.sudo().purchase_line_ids and line.state in ['released', 'done']:
                     line.storage_remaining_qty = line.product_uom_qty - sum(sale_lines.mapped('product_uom_qty'))
                 else:
