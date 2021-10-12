@@ -24,6 +24,7 @@ from . import zip_delivery_day
 from . import product_category
 from . import purchase_order
 from . import stock_picking
+from . import stock_scrap
 from . import mrp_production
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

@@ -11,11 +11,17 @@ from odoo.exceptions import UserError
 class AccountInvoice(models.Model):
     _inherit = 'account.invoice'
 
-    sales_person_ids = fields.Many2many('res.partner', related='partner_id.sales_person_ids',
-                                        string='Associated Sales Persons')
+    sales_person_ids = fields.Many2many('res.partner', related="partner_id.sales_person_ids", string='Associated Sales Persons', readonly=True)
     check_bounce_invoice = fields.Boolean(string='Check Bounce Invoice', default=False)
     sale_commission_ids = fields.One2many('sale.commission', 'invoice_id', string='Commission')
     paid_date = fields.Date(string='Paid_date', compute='_compute_paid_date')
+
+    # @api.onchange('partner_id', 'company_id')
+    # def _onchange_partner_id(self):
+    #     res = super(AccountInvoice, self)._onchange_partner_id()
+    #     if self.partner_id and self.partner_id.sales_person_ids:
+    #         self.sales_person_ids = self.partner_id.sales_person_ids
+    #     return res
 
     def _compute_paid_date(self):
         for rec in self:

@@ -167,6 +167,18 @@ class ResPartner(models.Model):
                         vals['customer_code'] = customer_code
                         break
                     count+=1
+        elif vals.get('parent_id', False):
+            if not vals.get('customer_code', False) and vals.get('parent_id', False):
+                parent = self.env['res.partner'].browse(vals.get('parent_id', False))
+                child_codes = parent.child_ids.mapped('customer_code')
+                count = 1
+                while parent:
+                    suffix = str(count).zfill(3)
+                    customer_code = parent.customer_code + '-' + suffix
+                    if customer_code not in child_codes:
+                        vals['customer_code'] = customer_code
+                        break
+                    count+=1
         result = super(ResPartner, self).create(vals)
         if result.customer and result.is_company:
             result.setup_pricelist_for_new_customer()

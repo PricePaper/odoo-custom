@@ -133,11 +133,41 @@
                                        context="{'default_product_id':id}"
                                        domain="[('product_id', '=', id)]"
                                        groups="sales_team.group_sale_salesman"
-                                       nolabel="1">
+                                       nolabel="1"
+                                        mode="tree,kanban">
                                     <tree>
                                         <field name='uom_id'/>
                                         <field name='price'/>
                                     </tree>
+                                    <kanban class="o_kanban_mobile">
+                                        <field name="product_id"/>
+                                        <field name="uom_id"/>
+                                        <field name="price"/>
+                                        <field name="cost"/>
+                                        <field name="price_margin"/>
+                                        <templates>
+                                            <t t-name="kanban-box">
+                                                <div t-attf-class="oe_kanban_card oe_kanban_global_click">
+                                                    <div class="row">
+                                                        <div class="col-8">
+                                                            <strong>
+                                                                <span>
+                                                                    <t t-esc="record.uom_id.value"/>
+                                                                </span>
+                                                            </strong>
+                                                        </div>
+                                                        <div class="col-4">
+                                                            <strong>
+                                                                <span class="float-right text-right badge badge-info">
+                                                                    <t t-esc="record.price.value"/>
+                                                                </span>
+                                                            </strong>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </t>
+                                        </templates>
+                                    </kanban>
                                     <form>
                                         <group>
                                             <group>

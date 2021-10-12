@@ -540,10 +540,14 @@ class SaleOrder(models.Model):
                 order.delivery_rating_success = True
                 order.delivery_price = res['price']
                 order.delivery_message = res['warning_message']
+                if order.carrier_id.delivery_type not in ['fixed', 'based_on_rule']:
+                    order.delivery_cost = res['cost']
             else:
                 order.delivery_rating_success = False
                 order.delivery_price = 0.0
                 order.delivery_message = res['error_message']
+                if order.carrier_id.delivery_type not in ['fixed', 'based_on_rule']:
+                    order.delivery_cost = 0.0
 
     @api.multi
     def adjust_delivery_line(self):
@@ -555,15 +559,12 @@ class SaleOrder(models.Model):
             #            if not order.delivery_rating_success and order.order_line:
             #                raise UserError(_('Please use "Check price" in order to compute a shipping price for this quotation.'))
 
-            price_unit = order.carrier_id.rate_shipment(order)['price']
+            res = order.carrier_id.rate_shipment(order)
+            price_unit = res.get('price', 0)
             delivery_line = self.env['sale.order.line'].search(
-                [('order_id', '=', order.id), ('is_delivery', '=', True)])
-            if not delivery_line and order.order_line:
-                # TODO check whether it is safe to use delivery_price here
-                order._create_delivery_line(order.carrier_id, price_unit)
+                [('order_id', '=', order.id), ('is_delivery', '=', True)], limit=1)
 
             if delivery_line:
-
                 # Apply fiscal position to get taxes to be applied
                 taxes = order.carrier_id.product_id.taxes_id.filtered(lambda t: t.company_id.id == order.company_id.id)
                 taxes_ids = taxes.ids
@@ -577,6 +578,8 @@ class SaleOrder(models.Model):
                 delivery_line.name = order.carrier_id.name
                 delivery_line.product_uom_qty = delivery_line.product_uom_qty if delivery_line.product_uom_qty > 1 else 1
                 delivery_line.product_uom = order.carrier_id.product_id.uom_id.id
+            else:
+                order._create_delivery_line(order.carrier_id, price_unit)
 
         return True
 
@@ -924,6 +927,7 @@ class SaleOrder(models.Model):
                         group_id.write(updated_vals)
 
                 values = line._prepare_procurement_values(group_id=group_id)
+                values['partner_id'] = self.company_id.partner_id.id
                 product_qty = line.product_uom_qty
                 procurement_uom = line.product_uom
                 try:
@@ -1088,11 +1092,11 @@ class SaleOrderLine(models.Model):
         for line in self:
             line.product_onhand = line.product_id.qty_available - line.product_id.outgoing_qty
 
-    @api.depends('product_uom_qty', 'qty_delivered', 'storage_contract_line_ids')
+    @api.depends('product_uom_qty', 'qty_delivered', 'storage_contract_line_ids', 'state')
     def _compute_storage_delivered_qty(self):
         for line in self:
             if line.order_id.storage_contract:
-                sale_lines = line.storage_contract_line_ids.filtered(lambda r: r.order_id.state != 'draft')
+                sale_lines = line.storage_contract_line_ids.filtered(lambda r: r.order_id.state not in ['draft', 'cancel'])
                 if not line.sudo().purchase_line_ids and line.state in ['released', 'done']:
                     line.storage_remaining_qty = line.product_uom_qty - sum(sale_lines.mapped('product_uom_qty'))
                 else:
@@ -1267,6 +1271,9 @@ class SaleOrderLine(models.Model):
                         line.lst_price = uom_price[0].price
                         if line.product_id.cost:
                             line.working_cost = uom_price[0].cost
+            if line.is_delivery and line.order_id.carrier_id and line.order_id.carrier_id.delivery_type not in ['based_on_rule', 'fixed']:
+                line.working_cost = line.order_id.delivery_cost
+                line.lst_price = line.order_id.delivery_price
 
     # @api.multi
     # def _prepare_invoice_line(self, qty):
@@ -1583,7 +1590,7 @@ class SaleOrderLine(models.Model):
                 else:
                     line.last_sale = 'No Previous information Found'
 
-    @api.depends('product_id', 'product_uom_qty', 'price_unit')
+    @api.depends('product_id', 'product_uom_qty', 'price_unit', 'order_id.delivery_cost')
     def calculate_profit_margin(self):
         """
         Calculate profit margin for SO line
@@ -1594,6 +1601,8 @@ class SaleOrderLine(models.Model):
                     line.profit_margin = 0.0
                     if line.is_delivery and line.order_id.carrier_id:
                         price_unit = line.order_id.carrier_id.average_company_cost
+                        if line.order_id.carrier_id.delivery_type not in ['fixed', 'based_on_rule']:
+                            price_unit = line.order_id.delivery_cost
                         line.profit_margin = line.price_subtotal - price_unit
                 else:
                     product_price = line.working_cost or 0

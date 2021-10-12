@@ -7,8 +7,24 @@ import csv
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
-    sales_person_ids = fields.Many2many('res.partner', related='partner_id.sales_person_ids',
-                                        string='Associated Sales Persons')
+    sales_person_ids = fields.Many2many('res.partner', related="partner_id.sales_person_ids", string='Associated Sales Persons', readonly=True)
+
+    # @api.multi
+    # @api.onchange('partner_id')
+    # def onchange_partner_id(self):
+    #     res = super(SaleOrder, self).onchange_partner_id()
+    #     if self.partner_id and self.partner_id.sales_person_ids:
+    #         self.sales_person_ids = self.partner_id.sales_person_ids
+    #     return res
+    #
+    # @api.multi
+    # def _prepare_invoice(self):
+    #     res = super(SaleOrder, self)._prepare_invoice()
+    #     if self.sales_person_ids:
+    #         res.update({
+    #             'sales_person_ids': [(6, 0, self.sales_person_ids.ids)]
+    #         })
+    #     return res
 
     @api.model
     def correct_csb(self):

@@ -14,7 +14,7 @@ class SaleOrder(models.Model):
             if order.partner_id:
                 count = self.env['customer.contract.line'].search_count([
                     ('contract_id.expiration_date', '>', fields.Datetime.now()),
-                    ('contract_id.partner_id', '=', order.partner_id.id),
+                    ('contract_id.partner_ids', 'in', order.partner_id.ids),
                     ('remaining_qty', '>', 0.0),
                     ('state', '=', 'confirmed')
                 ])
@@ -26,7 +26,7 @@ class SaleOrder(models.Model):
         for order in self:
             lines = self.env['customer.contract.line'].search([
                 '|', ('contract_id.expiration_date', '<', fields.Datetime.now()),
-                ('contract_id.partner_id', '=', order.partner_id.id),
+                ('contract_id.partner_ids', 'in', order.partner_id.ids),
                 ('remaining_qty', '<=', 0.0),
                 ('state', '=', 'confirmed')
             ])
@@ -50,7 +50,7 @@ class SaleOrderLine(models.Model):
             'domain': {'customer_contract_line_id': [
                 ('contract_id.expiration_date', '>', fields.Datetime.now()),
                 ('remaining_qty', '>', 0),
-                ('contract_id.partner_id', '=', self.order_id.partner_id.id),
+                ('contract_id.partner_ids', 'in', self.order_id.partner_id.ids),
                 ('state', '=', 'confirmed')]}
         }
 

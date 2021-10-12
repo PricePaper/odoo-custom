@@ -66,6 +66,7 @@
                 <xpath expr="//field[@name='child_ids']/form/sheet/group/group[position()=2]/field[@name='name']" position="before">
                     <field name="default_shipping" attrs="{'invisible': [('type', '!=', 'delivery')]}"/>
                     <field name="property_delivery_carrier_id" attrs="{'invisible': [('type', '!=', 'delivery')]}"/>
+                    <field name="customer_code" readonly="1"/>
                 </xpath>
 
                 <field name='vat' position='attributes'>
@@ -185,18 +186,69 @@
             </field>
         </record>
 
-        <record id="ppt_customer_payment_term_edit_permission_action" model="ir.actions.act_window">
-            <field name="name">Customer Payment Terms</field>
-            <field name="type">ir.actions.act_window</field>
-            <field name="res_model">res.partner</field>
-            <field name="view_mode">kanban,tree,form</field>
-            <field name="context">{'default_customer':1, 'search_default_customer':1, 'default_is_company': True}</field>
-              <field name="help" type="html">
-                <p class="o_view_nocontent_smiling_face">
-                    Create your take off template
-                </p>
+         <record id="view_partner_pricepaper_vat_form" model="ir.ui.view">
+            <field name="name">res.partner.inherit.tree</field>
+            <field name="model">res.partner</field>
+            <field name="arch" type="xml">
+                <form string="Partner">
+                   <sheet>
+                       <field name="type" invisible="1"/>
+                        <div class="oe_title">
+                            <h1>
+                                <field name="name" default_focus="1" placeholder="Name" attrs="{'required' : [('type', '=', 'contact')]}"/>
+                            </h1>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="is_company" invisible="1"/>
+                                <field name="commercial_partner_id" invisible="1"/>
+                                <field name="customer" invisible="1"/>
+                                <field name="parent_id" invisible="1"/>
+                                <field name="supplier" invisible="1"/>
+                                <field name="customer_code" readonly="1"/>
+                                <label for="street" string="Address"/>
+                                <div class="o_address_format">
+                                    <div attrs="{'invisible': ['|', ('parent_id', '=', False), ('type', '!=', 'contact')]}" class="oe_edit_only"><b>Company Address:</b></div>
+                                        <field name="street" placeholder="Street..." class="o_address_street"
+                                               attrs="{'readonly': [('type', '=', 'contact'),('parent_id', '!=', False)]}"/>
+                                        <field name="street2" placeholder="Street 2..." class="o_address_street"
+                                               attrs="{'readonly': [('type', '=', 'contact'),('parent_id', '!=', False)]}"/>
+                                        <field name="city" placeholder="City" class="o_address_city"
+                                               attrs="{'readonly': [('type', '=', 'contact'),('parent_id', '!=', False)]}"/>
+                                        <field name="state_id" class="o_address_state" placeholder="State" options="{&quot;no_open&quot;: True}"
+                                               attrs="{'readonly': [('type', '=', 'contact'),('parent_id', '!=', False)]}" context="{'country_id': country_id, 'zip': zip}"/>
+                                        <field name="zip" placeholder="ZIP" class="o_address_zip"
+                                               attrs="{'readonly': [('type', '=', 'contact'),('parent_id', '!=', False)]}"/>
+                                        <field name="country_id" placeholder="Country" class="o_address_country" options="{&quot;no_open&quot;: True, &quot;no_create&quot;: True}"
+                                               attrs="{'readonly': [('type', '=', 'contact'),('parent_id', '!=', False)]}"/>
+                                    </div>
+                                <field name="vat" placeholder="e.g. BE0477472701" attrs="{'readonly': [('parent_id','!=',False)]}"/>
+                               </group>
+                                <group string="Fiscal Information">
+                                    <field name="property_account_position_id"
+                                           options="{'no_create': True, 'no_open': True}"
+                                           readonly="0"
+                                           attrs="{'required': ['|', ('customer', '=', True),'|', '&amp;', '&amp;', ('parent_id', '=', False), ('type', '=', 'contact'), ('supplier', '=', False), ('type', '=', 'delivery')]}"
+                                          />
+                                </group>
+                        </group>
+                   </sheet>
+                </form>
             </field>
         </record>
+
+<!--        <record id="ppt_customer_payment_term_edit_permission_action" model="ir.actions.act_window">-->
+<!--            <field name="name">Customer Payment Terms</field>-->
+<!--            <field name="type">ir.actions.act_window</field>-->
+<!--            <field name="res_model">res.partner</field>-->
+<!--            <field name="view_mode">kanban,tree,form</field>-->
+<!--            <field name="context">{'default_customer':1, 'search_default_customer':1, 'default_is_company': True}</field>-->
+<!--              <field name="help" type="html">-->
+<!--                <p class="o_view_nocontent_smiling_face">-->
+<!--                    Create your take off template-->
+<!--                </p>-->
+<!--            </field>-->
+<!--        </record>-->
 
         <record id="res_partner_pricepaper_vat_edit_permission_action" model="ir.actions.act_window">
             <field name="name">Resale Number Entry</field>
@@ -228,30 +280,30 @@
         <record id="res_partner_pricepaper_vat_readonly_action_form_view" model="ir.actions.act_window.view">
             <field eval="3" name="sequence"/>
             <field name="view_mode">form</field>
-            <field name="view_id" ref="base.view_partner_form"/>
+            <field name="view_id" ref="view_partner_pricepaper_vat_form"/>
             <field name="act_window_id" ref="price_paper.res_partner_pricepaper_vat_edit_permission_action"/>
         </record>
 
-        <record id="ppt_customer_payment_method_and_term_edit_action_kanban_view" model="ir.actions.act_window.view">
-            <field eval="1" name="sequence"/>
-            <field name="view_mode">kanban</field>
-            <field name="view_id" ref="base.res_partner_kanban_view"/>
-            <field name="act_window_id" ref="price_paper.ppt_customer_payment_term_edit_permission_action"/>
-        </record>
+<!--        <record id="ppt_customer_payment_method_and_term_edit_action_kanban_view" model="ir.actions.act_window.view">-->
+<!--            <field eval="1" name="sequence"/>-->
+<!--            <field name="view_mode">kanban</field>-->
+<!--            <field name="view_id" ref="base.res_partner_kanban_view"/>-->
+<!--            <field name="act_window_id" ref="price_paper.ppt_customer_payment_term_edit_permission_action"/>-->
+<!--        </record>-->
 
-        <record id="ppt_customer_payment_term_edit_action_tree_view" model="ir.actions.act_window.view">
-            <field eval="2" name="sequence"/>
-            <field name="view_mode">tree</field>
-            <field name="view_id" ref="base.view_partner_tree"/>
-            <field name="act_window_id" ref="price_paper.ppt_customer_payment_term_edit_permission_action"/>
-        </record>
+<!--        <record id="ppt_customer_payment_term_edit_action_tree_view" model="ir.actions.act_window.view">-->
+<!--            <field eval="2" name="sequence"/>-->
+<!--            <field name="view_mode">tree</field>-->
+<!--            <field name="view_id" ref="base.view_partner_tree"/>-->
+<!--            <field name="act_window_id" ref="price_paper.ppt_customer_payment_term_edit_permission_action"/>-->
+<!--        </record>-->
 
-        <record id="ppt_customer_payment_term_edit_action_form_view" model="ir.actions.act_window.view">
-            <field eval="3" name="sequence"/>
-            <field name="view_mode">form</field>
-            <field name="view_id" ref="base.view_partner_form"/>
-            <field name="act_window_id" ref="price_paper.ppt_customer_payment_term_edit_permission_action"/>
-        </record>
+<!--        <record id="ppt_customer_payment_term_edit_action_form_view" model="ir.actions.act_window.view">-->
+<!--            <field eval="3" name="sequence"/>-->
+<!--            <field name="view_mode">form</field>-->
+<!--            <field name="view_id" ref="view_partner_pricepaper_payment_terms_form"/>-->
+<!--            <field name="act_window_id" ref="price_paper.ppt_customer_payment_term_edit_permission_action"/>-->
+<!--        </record>-->
 
 
 
@@ -388,9 +440,9 @@
                   groups="account.group_account_invoice"
                   parent="account.menu_finance_receivables" sequence="16"/>
 
-         <menuitem action="ppt_customer_payment_term_edit_permission_action"
-                   id="ppt_customer_payment_term_edit_action_menu"
-                   groups="account.group_account_manager"
-                  parent="account.menu_finance_receivables" sequence="17"/>
+<!--         <menuitem action="ppt_customer_payment_term_edit_permission_action"-->
+<!--                   id="ppt_customer_payment_term_edit_action_menu"-->
+<!--                   groups="account.group_account_manager"-->
+<!--                  parent="account.menu_finance_receivables" sequence="17"/>-->
     </data>
 </odoo>
