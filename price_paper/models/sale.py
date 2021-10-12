@@ -992,7 +992,7 @@ class SaleOrderLine(models.Model):
 
     profit_margin = fields.Monetary(compute='calculate_profit_margin', string="Profit")
     price_from = fields.Many2one('customer.product.price', string='Product Pricelist')
-    last_sale = fields.Text(compute='compute_last_sale_detail', string='Last sale details', store=False)
+    last_sale = fields.Text(string='Last sale details')
     product_onhand = fields.Float(string='Product Qty Available', compute='compute_available_qty',
                                   digits=dp.get_precision('Product Unit of Measure'), store=False)
     new_product = fields.Boolean(string='New Product', copy=False)
@@ -1558,37 +1558,34 @@ class SaleOrderLine(models.Model):
                 note.expiry_date = res.note_expiry_date
         return res
 
-    @api.depends('product_id', 'product_uom', 'order_id.partner_id')
-    def compute_last_sale_detail(self):
+    @api.onchange('product_id', 'product_uom', 'order_partner_id')
+    def onchange_get_last_sale_info(self):
         """
-        compute last sale detail of the product by the partner.
+        get last sale detail of the product by the partner.
         """
-        if self._context.get('partner_id'):
-            for line in self:
-                if not line.order_id.partner_id:
-                    raise ValidationError(_('Please enter customer information first.'))
-                line.last_sale = False
-                if line.product_id and line.product_uom:
-                    # last = self.env['sale.order.line'].sudo().search(
-                    #     [('order_id.partner_shipping_id', '=', line.order_id.partner_shipping_id.id),
-                    #      ('product_id', '=', line.product_id.id), ('product_uom', '=', line.product_uom.id),
-                    #      ('is_last', '=', True)], limit=1)
+        if self.product_id and self.product_uom:
+            if not self.order_id.partner_id:
+                raise ValidationError(_('Please enter customer information first.'))
 
-                    last = self.env['sale.history'].sudo().search(
-                        [('order_id.partner_id', '=', line.order_id.partner_id.id),
-                         ('product_id', '=', line.product_id.id),
-                         ('uom_id', '=', line.product_uom.id),], limit=1)
-                    if last:
-                        local = pytz.timezone(self.sudo().env.user.tz or "UTC")
-                        last_date = datetime.strftime(pytz.utc.localize(
-                            datetime.strptime(str(last.order_id.confirmation_date),
-                                              DEFAULT_SERVER_DATETIME_FORMAT)).astimezone(local), "%m/%d/%Y %H:%M:%S")
-                        line.last_sale = 'Order Date  - %s\nPrice Unit    - %s\nSale Order  - %s' % (
-                            last_date, last.order_line_id.price_unit, last.order_id.name)
-                    else:
-                        line.last_sale = 'No Previous information Found'
-                else:
-                    line.last_sale = 'No Previous information Found'
+            last = self.env['sale.history'].sudo().search([
+                ('partner_id', '=', self.order_id.partner_id.id),
+                ('product_id', '=', self.product_id.id),
+                ('uom_id', '=', self.product_uom.id)
+            ], limit=1)
+            if last:
+                local = pytz.timezone(self.sudo().env.user.tz or "UTC")
+                last_date = datetime.strftime(
+                    pytz.utc.localize(
+                        datetime.strptime(
+                            str(last.order_id.confirmation_date), DEFAULT_SERVER_DATETIME_FORMAT)
+                    ).astimezone(local), "%m/%d/%Y %H:%M:%S")
+                self.last_sale = 'Order Date  - %s\nPrice Unit    - %s\nSale Order  - %s' % (
+                    last_date, last.order_line_id.price_unit, last.order_id.name)
+            else:
+                self.last_sale = 'No Previous information Found'
+        else:
+            self.last_sale = 'No Previous information Found'
+
 
     @api.depends('product_id', 'product_uom_qty', 'price_unit', 'order_id.delivery_cost')
     def calculate_profit_margin(self):

@@ -58,6 +58,18 @@ class AccountBankStatementLine(models.Model):
                     self.env['process.returned.check'].create(vals)
         return counterpart_moves
 
+    @api.multi
+    def button_cancel_reconciliation(self):
+        for st_line in self:
+            if 'DEPOSITED ITEM RETURNED' in st_line.name:
+                process_check = self.env['process.returned.check'].search([('bank_stmt_line_id', '=', st_line.id), ('state', '!=', 'cancel')])
+                if len(process_check) > 1:
+                    raise UserError("There is more than one record in the process rerturn check")
+                elif process_check:
+                    process_check.undo_process()
+
+        return super(AccountBankStatementLine, self).button_cancel_reconciliation()
+
 AccountBankStatementLine()
 
 

@@ -8,6 +8,7 @@
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='communication']" position="after">
                     <field name="is_return_cleared" readonly="1" invisible='1'/>
+                    <field name="old_invoice_ids" invisible='1'/>
                 </xpath>
             </field>
         </record>

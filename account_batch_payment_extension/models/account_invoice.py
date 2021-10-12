@@ -8,6 +8,32 @@ from odoo.exceptions import UserError
 class Accountinvoice(models.Model):
     _inherit = "account.invoice"
 
+    def remove_bounced_cheque_commission(self):
+        for invoice in self:
+            commission_rec = self.env['sale.commission'].search([
+                ('invoice_id', '=', invoice.id), ('is_paid', '=', True),
+                ('is_cancelled', '=', False), ('invoice_type', '=', 'bounced_cheque')])
+            for rec in commission_rec:
+                if rec.is_settled:
+                    rec.is_cancelled = True
+                    sale = invoice.invoice_line_ids.mapped('sale_line_ids').mapped('order_id')
+                    commission = rec.commission
+                    vals1 = {
+                        'sale_person_id': rec.sale_person_id.id,
+                        'sale_id': sale and sale.id,
+                        'commission': -commission,
+                        'invoice_id': invoice.id,
+                        'invoice_type': 'bounced_reverse',
+                        'is_paid': True,
+                        'invoice_amount': invoice.amount_total,
+                        'commission_date': date.today(),
+                        'paid_date': date.today(),
+                    }
+                    refund_rec = self.env['sale.commission'].create(vals1)
+                else:
+                    rec.unlink()
+        return {}
+
     def remove_sale_commission(self, invoice_date):
 
         invoice_fine = self.env['account.invoice']

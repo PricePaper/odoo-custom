@@ -5,7 +5,8 @@ from odoo import models, api, fields
 class AccountPayment(models.Model):
     _inherit = 'account.payment'
 
-    is_return_cleared = fields.Boolean('Return cleared')
+    is_return_cleared = fields.Boolean(string='Return cleared')
+    old_invoice_ids = fields.Many2many('account.invoice', string='Old Invoices')
 
     def action_delete_from_db(self):
         self.batch_payment_id.message_post(body='Payment line removed.')

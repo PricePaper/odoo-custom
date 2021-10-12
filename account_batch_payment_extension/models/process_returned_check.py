@@ -49,6 +49,7 @@ class ProcessReturnedCheck(models.Model):
             if not payment:
                 raise UserError("Payment is not selected")
             for pay in payment:
+                pay.write({'old_invoice_ids': [(6, 0, pay.reconciled_invoice_ids.ids)]})
                 pay.mapped('move_line_ids').remove_move_reconcile()
             reconcile_lines = (payment.mapped('move_line_ids') | self.bank_stmt_line_id.journal_entry_ids)
             reconcile_lines = reconcile_lines.filtered(lambda r: not r.reconciled and r.account_id.internal_type in ('payable', 'receivable'))
@@ -60,6 +61,29 @@ class ProcessReturnedCheck(models.Model):
             rec.state = 'done'
             payment.write({'is_return_cleared': True})
             rec.bank_stmt_line_id.is_return_cleared = True
+
+    def undo_process(self):
+        for payment in self.payment_ids:
+            if payment.old_invoice_ids:
+                old_invoice_not_open = payment.old_invoice_ids.filtered(lambda r: r.state != 'open')
+                if old_invoice_not_open:
+                    raise UserError("Invoice not in open state \n %s" %
+                                    ', '.join(old_invoice_not_open.mapped('number')))
+                payment.mapped('move_line_ids').remove_move_reconcile()
+                credit_aml = payment.mapped('move_line_ids').filtered(lambda r: not r.reconciled and r.account_id.internal_type in ('payable', 'receivable'))
+                payment.old_invoice_ids.register_payment(credit_aml)
+                payment.old_invoice_ids.remove_bounced_cheque_commission()
+        if self.invoice_ids:
+            paid_fine = self.invoice_ids.filtered(lambda r: r.state == 'paid')
+            if paid_fine:
+                raise UserError("Check Bounce Return Invoice already Paid. \n %s" %
+                                ', '.join(paid_fine.mapped('number')))
+            self.invoice_ids.action_invoice_cancel()
+        self.state = 'cancel'
+        payment.write({'is_return_cleared': False})
+        self.bank_stmt_line_id.is_return_cleared = False
+
+
 
     @api.multi
     def action_cancel(self):
