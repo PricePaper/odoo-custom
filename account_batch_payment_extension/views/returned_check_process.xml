@@ -60,20 +60,23 @@
                                 <field name="bank_stmt_line_id" required='1' attrs="{'readonly':[('state', 'in', ('done', 'cancel'))]}"
                                     domain="[('name', 'like', 'DEPOSITED ITEM RETURNED'), ('is_return_cleared', '=', False),
                                     ('move_name', '!=', False)]"/>
+                                <field name="amount" readonly='1'/>
+                                <field name="journal_currency_id" invisible='1'/>
                                 <field name="partner_ids" required='1' attrs="{'readonly':[('state', 'in', ('done', 'cancel'))]}" force_save="1"
                                     widget="many2many_tags" options="{'no_create': True}"/>
-                                <field name="payment_ids" required='1' attrs="{'readonly':[('state', 'in', ('done', 'cancel'))]}"
-                                         widget="many2many_tags" options="{'no_create': True}" force_save="1"
-                                         context="{'from_return_check_process': True}"
-                                         domain="['|', '&amp;', '&amp;', '&amp;', '&amp;', ('payment_type', '=', 'inbound'), ('partner_id', '=', partner_ids),
-                                             ('payment_method_id.code', 'in', ('check_printing_in', 'batch_payment')),
-                                             ('is_return_cleared', '=', False), ('state', 'not in', ('done', 'cancelled')), '&amp;',
-                                             ('is_return_cleared', '=', True), ('state', '=', 'done')
-                                             ]"/>
-
                             </group>
-                        <field name="notes" placeholder="Notes..."/>
                         </group>
+                        <separator string="Payments"/>
+                        <field name="payment_ids" required='1' attrs="{'readonly':[('state', 'in', ('done', 'cancel'))]}"
+                                 ptions="{'no_create': True}" force_save="1"
+                                 context="{'from_return_check_process': True}"
+                                 domain="['|', '&amp;', '&amp;', '&amp;', '&amp;', ('payment_type', '=', 'inbound'), ('partner_id', '=', partner_ids),
+                                     ('payment_method_id.code', 'in', ('check_printing_in', 'batch_payment')),
+                                     ('is_return_cleared', '=', False), ('state', 'not in', ('done', 'cancelled')), '&amp;',
+                                     ('is_return_cleared', '=', True), ('state', '=', 'done')
+                                     ]"/>
+                        <field name="notes" placeholder="Notes..."/>
+
                     </sheet>
                     <div class="oe_chatter">
                         <field name="message_follower_ids" widget="mail_followers" groups="base.group_user"/>

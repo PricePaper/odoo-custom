@@ -48,9 +48,12 @@ class AccountBankStatementLine(models.Model):
                 if cheque_no and len(cheque_no) > 1:
                     cheque_no = cheque_no[1].split(' ', 1)[0]
                     cheque_no_strip = cheque_no.lstrip('0')
-                    payment = self.env['account.payment'].search(['|', ('communication', '=', cheque_no_strip), ('communication', '=', cheque_no)])
+                    payment = self.env['account.payment'].search(['|',
+                        ('communication', '=', cheque_no_strip),
+                        ('communication', '=', cheque_no),
+                        ('amount', '=', abs(self.amount))])
                     vals = {'bank_stmt_line_id': stmt.id}
-                    if payment:
+                    if payment and len(payment) == 1:
                         vals['payment_ids'] = [(6, 0, payment.ids)]
                         vals['partner_ids'] = [(6, 0, payment.mapped('partner_id').ids)]
                     if not payment and stmt.partner_id:
