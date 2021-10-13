@@ -21,22 +21,38 @@ class ProcessReturnedCheck(models.Model):
         copy=False, track_visibility='onchange', required=True)
     invoice_count = fields.Integer(string='Invoice Count', compute='_get_invoice_count', readonly=True)
     notes = fields.Text(string='Notes')
+    amount = fields.Monetary(related='bank_stmt_line_id.amount', string='Amount', digits=0, currency_field='journal_currency_id')
+    journal_currency_id = fields.Many2one('res.currency', string="Journal's Currency", related='bank_stmt_line_id.journal_currency_id',
+        help='Utility field to express amount currency', readonly=True)
 
     @api.depends('invoice_ids')
     def _get_invoice_count(self):
         for rec in self:
             rec.invoice_count = len(rec.mapped('invoice_ids'))
 
+    @api.onchange('partner_ids')
+    def onchange_partner(self):
+        if self.partner_ids:
+            self.payment_ids = self.payment_ids.filtered(lambda r: r.partner_id in self.partner_ids)
+        else:
+            self.payment_ids = False
+
     @api.onchange('bank_stmt_line_id')
     def onchange_bank_stmt(self):
+        self.payment_ids = False
+        self.partner_ids = False
         if self.bank_stmt_line_id:
             cheque_no = self.bank_stmt_line_id.name and self.bank_stmt_line_id.name.split('CK#:')
             if cheque_no and len(cheque_no) > 1:
                 cheque_no = cheque_no[1].split(' ', 1)[0]
                 cheque_no_strip = cheque_no.lstrip('0')
-                payments = self.env['account.payment'].search(['|', ('communication', '=', cheque_no_strip), ('communication', '=', cheque_no)])
-                self.payment_ids = payments.ids
-                self.partner_ids = payments.mapped('partner_id').ids
+                payments = self.env['account.payment'].search(['|',
+                    ('communication', '=', cheque_no_strip),
+                    ('communication', '=', cheque_no),
+                    ('amount', '=', abs(self.amount))])
+                if payments and len(payments) == 1:
+                    self.partner_ids = payments.mapped('partner_id').ids
+                    self.payment_ids = payments.ids
         else:
             self.payment_ids = False
             self.partner_ids = False
