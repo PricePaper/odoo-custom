@@ -6,7 +6,8 @@
             <field name="model">cost.change.parent</field>
             <field name="arch" type="xml">
                 <tree>
-                    <field name="vendor_id"/>
+                    <field name="name"/>
+                    <field name="vendor_id" invisible='1'/>
                     <field name="run_date"/>
                     <field name="update_standard_price"/>
                     <field name="update_customer_pricelist"/>

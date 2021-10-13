@@ -28,6 +28,18 @@ class CostChangeParent(models.Model):
     cost_change_lines = fields.One2many('cost.change', 'cost_change_parent', string='Lines')
     user_id = fields.Many2one('res.users', string='User', default=lambda self: self.env.user)
     product_ids = fields.Many2many('product.product', string="Products", compute='_compute_product_ids')
+    name = fields.Char(string='Name', compute='compute_name', store=True, copy=False)
+
+    @api.depends('vendor_id', 'cost_change_lines.product_id')
+    def compute_name(self):
+        for rec in self:
+            if rec.vendor_id:
+                rec.name = rec.vendor_id.name
+            elif rec.cost_change_lines:
+                rec.name = ', '.join(rec.cost_change_lines.mapped('product_id').mapped('default_code'))
+            else:
+                rec.name = rec.run_date
+
 
     @api.depends('vendor_id', 'category_id')
     def _compute_product_ids(self):
@@ -74,16 +86,6 @@ class CostChangeParent(models.Model):
             for line in rec.cost_change_lines:
                 line.cost_change_method()
             rec.is_done = True
-    @api.multi
-    @api.depends('run_date')
-    def name_get(self):
-        result = []
-        for record in self:
-            name = "%s" % (record.run_date)
-            result.append((record.id, name))
-        return result
-
-
 
 CostChangeParent()
 
@@ -295,15 +297,6 @@ class CostChange(models.Model):
                 else:
                     new_price = new_working_cost / (1 - margin)
         return new_price
-
-    @api.multi
-    @api.depends('run_date')
-    def name_get(self):
-        result = []
-        for record in self:
-            name = "%s" % (record.run_date)
-            result.append((record.id, name))
-        return result
 
     @api.one
     @api.constrains('price_change')
