@@ -161,7 +161,9 @@ class SaleOrder(models.Model):
 
             if sale_order.storage_contract:
                 sale_order.order_line.mapped('purchase_line_ids.order_id').button_cancel()
-
+        sc_having_lines = sale_order.order_line.filtered('storage_contract_line_id')
+        if sc_having_lines:
+            sc_having_lines.write({'product_uom_qty': 0})
         return super(SaleOrder, self).action_cancel()
 
     @api.multi
@@ -829,6 +831,17 @@ class SaleOrder(models.Model):
             if self.hold_state in ('credit_hold', 'price_hold', 'both_hold'):
                 self.hold_state = 'release'
 
+            for order in self:
+                sc_line = order.order_line.mapped('storage_contract_line_id')
+                sc_not_avl = sc_line.filtered(lambda r: r.storage_remaining_qty <= 0)
+                if sc_not_avl:
+                    raise ValidationError(_('There is no available quantity in Storage Contract : \n ➤ %s' % ','.join([name[:-22] for name in sc_not_avl.mapped('display_name')])))
+
+                for line in sc_line:
+                    qty = sum(line.storage_contract_line_ids.filtered(lambda r: r.id in order.order_line.ids).mapped('product_uom_qty'))
+                    if line.storage_remaining_qty < qty:
+                        raise ValidationError(_('You are planning to sell more than available qty in Storage Contract: \n ➤ {0} \n There is only {1:.2f} left.'.format(line.display_name[:-22], line.storage_remaining_qty)))
+
             res = super(SaleOrder, self).action_confirm()
 
             for order in self:
@@ -1104,11 +1117,11 @@ class SaleOrderLine(models.Model):
             else:
                 break
 
-    @api.multi
+    @api.model
     def _search_storage_remaining_qty(self, operator, value):
         ids = []
         if operator == '>':
-            lines = self.search([
+            lines = self.env['sale.order.line'].search([
                 ('product_id.type', '!=', 'service'),
                 ('order_id.storage_contract', '=', True),
                 ('state', '=', 'released'),
@@ -1116,10 +1129,10 @@ class SaleOrderLine(models.Model):
             ])
             for sl in lines:
                 if not sl.sudo().purchase_line_ids:
-                    if (sl.product_uom_qty - sum(sl.storage_contract_line_ids.mapped('product_uom_qty'))) > value:
+                    if (sl.product_uom_qty - sum(sl.storage_contract_line_ids.filtered(lambda r: r.order_id.state not in ['draft', 'cancel']).mapped('product_uom_qty'))) > value:
                         ids.append(sl.id)
                 else:
-                    if (sl.qty_delivered - sum(sl.storage_contract_line_ids.mapped('product_uom_qty'))) > value:
+                    if (sl.qty_delivered - sum(sl.storage_contract_line_ids.filtered(lambda r: r.order_id.state not in ['draft', 'cancel']).mapped('product_uom_qty'))) > value:
                         ids.append(sl.id)
         return [('id', 'in', ids)]
 
