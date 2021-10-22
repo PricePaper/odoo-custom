@@ -3,6 +3,7 @@
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 
+from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT
 from odoo import models, fields, registry, api, _
 from odoo.tools.float_utils import float_compare
 from odoo.exceptions import ValidationError, AccessError
@@ -67,6 +68,13 @@ class PurchaseOrder(models.Model):
             if purchase_rep:
                 vals['user_id'] = purchase_rep[0].id
         return super(PurchaseOrder, self).create(vals)
+
+    @api.multi
+    def write(self, vals):
+        result = super(PurchaseOrder, self).write(vals)
+        if 'date_planned' in vals and vals['date_planned']:
+            self.action_set_date_planned()
+        return result
 
     @api.multi
     def _add_supplier_to_product(self):
@@ -213,7 +221,7 @@ class PurchaseOrder(models.Model):
                                                     })
             result_list = self.sanitize_uom(result_dict)
 
-        context = {'data': result_list}
+        context = {'data': result_list, 'default_vendor_id': self.partner_id.id}
         view_id = self.env.ref('purchase_extension.view_sale_history_add_po_wiz').id
         return {
             'name': _('Add sale history to PO'),
@@ -301,6 +309,15 @@ class PurchaseOrderLine(models.Model):
     gross_volume = fields.Float(string="Gross Volume", compute='_compute_gross_weight_volume')
     gross_weight = fields.Float(string="Gross Weight", compute='_compute_gross_weight_volume')
 
+    @api.onchange('product_qty', 'product_uom')
+    def _onchange_quantity(self):
+        res = super(PurchaseOrderLine, self)._onchange_quantity()
+        date_order = self.order_id.date_order
+        delay = self.order_id.vendor_delay
+        if date_order and delay:
+            planned_date = date_order + relativedelta(days=delay)
+            self.date_planned = planned_date.strftime(DEFAULT_SERVER_DATETIME_FORMAT)
+        return res
 
     @api.model
     def create(self, vals):

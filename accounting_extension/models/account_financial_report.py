@@ -50,7 +50,7 @@ class ReportAccountFinancialReport(models.Model):
             t = income[0]['columns'][0].get('no_format_name') or income[0]['columns'][0].get('name')
             for l in res:
                 if l.get('caret_options') or l.get('id') == 'total_6' or l.get('name') == 'Total Gross Profit' or l.get('id') == 4 and l.get('class') == 'total':
-                    s = l['columns'][0].get('no_format_name') or l['columns'][0].get('name')
+                    s = l['columns'][0].get('no_format_name')
                     p = (s / t) * 100
                     l['columns'].append({
                         'name': '{0:0.2f}%'.format(p),

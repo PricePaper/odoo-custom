@@ -12,11 +12,6 @@ class CostChangeParent(models.Model):
     _name = 'cost.change.parent'
     _description = 'Cost Change'
 
-    # item_filter = fields.Selection([('product', 'Product'), ('vendor', 'Vendor and/or Product Category')],
-                                   # string='Update Cost of', default='product')
-    # price_filter = fields.Selection([('percentage', '%'), ('fixed', 'Fix to an Amount')], string='Increase Cost as',
-                                    # default='fixed',
-                                    # help='Percentage: increase cost by percentage \n Fix to an Amount: sets the price to the specified fixed amount')
     vendor_id = fields.Many2one('res.partner', string="Vendor", domain=[('supplier', '=', True)])
     category_id = fields.Many2many('product.category', string="Product Category")
     is_done = fields.Boolean(string='Done', copy=False, default=False)
@@ -69,7 +64,6 @@ class CostChangeParent(models.Model):
     @api.multi
     def add_percentage_lines(self):
         view_id = self.env.ref('price_paper.view_cost_change_percentage_wiz').id
-
         return {
             'name': _('Cost Change Cron'),
             'view_type': 'form',
@@ -164,10 +158,10 @@ class CostChange(models.Model):
                 if rec.price_filter == 'fixed':
                     rec.new_cost = rec.price_change
                 else:
-                    rec.new_cost = rec.product_id and rec.product_id.standard_price * (
+                    rec.new_cost = rec.old_cost and rec.old_cost * (
                                 (100 + rec.price_change) / 100) or 0
             else:
-                rec.new_cost == 0.00
+                rec.new_cost = rec.old_cost
 
 
     @api.multi
@@ -177,6 +171,7 @@ class CostChange(models.Model):
         for rec in self:
             # Update list price
             product = rec.product_id
+            rec.old_cost = product.standard_price
             if rec.cost_change_parent.update_standard_price:
                 rec.calculate_new_stdprice(product)
                 standard_price_days = self.env.user.company_id.standard_price_config_days or 75
@@ -301,8 +296,8 @@ class CostChange(models.Model):
     @api.one
     @api.constrains('price_change')
     def check_if_zero_cost(self):
-        if not self.price_change and self.product_id and self.product_id.type != 'service':
-            raise ValidationError('Cost change field cannot be 0.00')
+        # if not self.price_change and self.product_id and self.product_id.type != 'service':
+        #     raise ValidationError('Cost change field cannot be 0.00')
         if self.product_id and self.old_cost == 0:
             if self.update_standard_price or self.update_customer_pricelist:
                 raise ValidationError('Please update only cost since old cost of the product is zero.(Uncheck standard price, customer pricelist update check boxes.)')

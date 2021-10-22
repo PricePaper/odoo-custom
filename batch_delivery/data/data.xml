@@ -109,7 +109,7 @@
                 </tr>
                 % for line in ctx['summery_list']:
                     <tr valign="top" style="font-size: 11px;">
-                        <td>${line.picking_id.partner_id.display_name}</td>
+                        <td>${line.picking_id.partner_id.name}</td>
                         <td>${line.picking_id.sale_id.display_name}</td>
                         <td>${line.product_id.display_name}</td>
                         <td>

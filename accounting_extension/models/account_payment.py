@@ -270,6 +270,12 @@ class AccountRegisterPaymentLines(models.TransientModel):
     @api.onchange("discount")
     def onchange_discount(self):
         if self.discount != 0:
+            customer_discount_per = self.env['ir.config_parameter'].sudo().get_param('accounting_extension.customer_discount_limit', 5.00)
+            if isinstance(customer_discount_per, str):
+                customer_discount_per = float(customer_discount_per)
+            discount_amount_limit = round(self.invoice_id.residual_signed * (customer_discount_per / 100), 2)
+            if discount_amount_limit and discount_amount_limit < self.discount:
+                raise UserError(_('Cannot add discount more than {}%.'.format(customer_discount_per)))
             if self.amount_total >= 0:
                 self.payment_amount = self.amount_total - self.discount
             else:

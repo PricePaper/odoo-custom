@@ -3,7 +3,14 @@ from odoo.exceptions import ValidationError, UserError
 
 
 class RMARetMerAuth(models.Model):
-    _inherit = 'rma.ret.mer.auth'
+    _name = 'rma.ret.mer.auth'
+    _inherit = ['rma.ret.mer.auth', 'mail.thread', 'mail.activity.mixin']
+
+    state = fields.Selection([
+        ('new', 'New'), ('verification', 'Verification'),
+        ('resolved', 'Waiting For Delivery'),
+        ('approve', 'Approved'),
+        ('close', 'Done')], string='Status', default='new', track_visibility='onchange')
 
     def button_dummy(self):
         return {

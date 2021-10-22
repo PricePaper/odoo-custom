@@ -21,7 +21,7 @@ class CostChangePercentage(models.TransientModel):
         for rec in cost_change_parent:
             domain = []
             if rec.vendor_id:
-                product_ids = self.env['product.supplierinfo'].search([('name', '=', rec.vendor_id.id), ('product_id', '!=', False)]).mapped('product_id')
+                product_ids = self.env['product.supplierinfo'].search([('name', '=', rec.vendor_id.id), ('product_id', '!=', False), '|', ('date_end', '=', False), ('date_end', '>', fields.Date.today())]).mapped('product_id')
                 domain.append(('id', 'in', product_ids.ids))
             if rec.category_id:
                 domain.append(('categ_id.id', 'child_of', rec.category_id.ids))
@@ -30,13 +30,16 @@ class CostChangePercentage(models.TransientModel):
                 product_ids = products
 
         for product in product_ids:
-            cost_change_line = {
-                'product_id': product.id,
-                'price_filter': 'percentage',
-                'price_change': self.percentage_change,
-                'cost_change_parent': cost_change_parent and cost_change_parent.id
-            }
-            self.env['cost.change'].create(cost_change_line)
+            vend_seq = product.seller_ids.filtered(lambda r: r.name == cost_change_parent.vendor_id).mapped('sequence')
+            non_seq = product.seller_ids.filtered(lambda r: r.name != cost_change_parent.vendor_id and (not r.date_end or r.date_end > fields.Date.today())).mapped('sequence')
+            if not non_seq or min(vend_seq) <= min(non_seq):
+                cost_change_line = {
+                    'product_id': product.id,
+                    'price_filter': 'percentage',
+                    'price_change': self.percentage_change,
+                    'cost_change_parent': cost_change_parent and cost_change_parent.id
+                }
+                self.env['cost.change'].create(cost_change_line)
         return True
 
 

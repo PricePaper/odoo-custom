@@ -23,6 +23,7 @@
                             <b>Lines in red color means that there are other vendors with lower price for this
                                 product.</b>
                         </p>
+                        <field name="vendor_id" invisible="1"/>
                         <separator string="Sales History"/>
                         <group>
                             <group>
@@ -39,6 +40,7 @@
                                 <field name="product_id" invisible="1"/>
                                 <field name="product_uom" readonly='1' tabindex="0" widget="selection"
                                        help="Unit of measure"/>
+                                <field name="min_qty" readonly='1' tabindex="0" help="Minimum quantity to purchase" style="color:#002780;font-weight: bold;"/>
                                 <field name="product_oh_qty" readonly='1' tabindex="0" help="On hand quantity"/>
                                 <field name="product_ip_qty" readonly='1' tabindex="0" help="In Purchase quantity"/>
                                 <field name="product_price" readonly='1' tabindex="0"

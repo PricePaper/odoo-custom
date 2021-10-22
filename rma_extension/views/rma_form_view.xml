@@ -35,6 +35,13 @@
                 <xpath expr="//form/sheet/notebook/page[@name='order_lines']/field[@name='rma_sale_lines_ids']" position="attributes">
                     <attribute name="mode">tree,kanban</attribute>
                 </xpath>
+                <xpath expr="//sheet" position="after">
+                     <div class="oe_chatter">
+                        <field name="message_follower_ids" widget="mail_followers"/>
+                         <field name="activity_ids" widget="mail_activity"/>
+                        <field name="message_ids" widget="mail_thread"/>
+                    </div>
+                </xpath>
                 <xpath expr="//form/sheet/notebook/page[@name='order_lines']/field[@name='rma_sale_lines_ids']" position="inside">
                      <kanban class="o_kanban_mobile" create="0">
                         <field name="product_id"/>

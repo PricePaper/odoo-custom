@@ -256,7 +256,7 @@
                             </group>
                         </group>
                     </div>
-                    <div attrs="{'invisible': ['|', ('state', 'in', ['sale', 'done', 'cancel']), ('display_type', '!=', False)]}">
+                    <div attrs="{'invisible': [('display_type', '!=', False)]}">
                         <label for="last_sale"/>
                         <field name="last_sale" readonly="1" force_save="1"/>
                     </div>

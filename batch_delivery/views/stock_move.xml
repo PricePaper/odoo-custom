@@ -72,6 +72,9 @@
                 <xpath expr="//field[@name='reference']" position="after">
                     <field name="partner_id"/>
                 </xpath>
+                <xpath expr="//field[@name='date']" position="attributes">
+                    <attribute name="groups"></attribute>
+                </xpath>
             </field>
         </record>
 

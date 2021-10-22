@@ -70,6 +70,18 @@
             </field>
         </record>
 
+        <record id="payment_search_inherit_accounting_extension" model="ir.ui.view">
+            <field name="name">inherited search view for account.payment</field>
+            <field name="model">account.payment</field>
+            <field name="inherit_id" ref="account.view_account_payment_search"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <field name="batch_payment_id"/>
+                </xpath>
+
+            </field>
+        </record>
 
         <record id="accounting_extension_view_payment_form" model="ir.ui.view">
             <field name="name">Account Payment Form</field>

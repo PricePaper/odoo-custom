@@ -130,7 +130,7 @@ class StockMove(models.Model):
             # As applying a landed cost do not update the unit price, naivelly doing
             # something like qty_taken_on_candidate * candidate.price_unit won't make
             # the additional value brought by the landed cost go away.
-            candidate_price_unit = candidate.remaining_value / candidate.remaining_qty
+            candidate_price_unit = candidate.remaining_value / (candidate.remaining_qty if candidate.remaining_qty else 1)
             value_taken_on_candidate = qty_taken_on_candidate * candidate_price_unit
             candidate_vals = {
                 'remaining_qty': candidate.remaining_qty - qty_taken_on_candidate,

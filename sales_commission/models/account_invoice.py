@@ -76,7 +76,8 @@ class AccountInvoice(models.Model):
                 rec.sudo().write({'is_paid': True})
                 if invoice.payment_ids:
                     invoice.sudo().check_commission(rec)
-                    invoice.sudo().check_due_date(rec)
+                    if invoice.type != 'out_refund':
+                        invoice.sudo().check_due_date(rec)
         return res
 
     def check_commission(self, lines):

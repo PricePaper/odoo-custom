@@ -17,15 +17,15 @@
                         <field name="wizard_invoice_ids" >
                             <tree create="0" delete="0" editable="top">
                                 <field name="select"/>
-                                <field name="invoice_id" invisible="1"/>
-                                <field name="invoice_id_pseudo" readonly="1"/>
-                                <field name="partner_id" readonly="1"/>
-                                <field name="total_amount" readonly="1"/>
-                                <field name="discount_amount" invisible="1"/>
-                                <field name="discount_amount_pseudo"/>
-                                <field name="date_invoice" readonly="1"/>
-                                <field name="date_due" readonly="1"/>
-                                <field name="discount_due_date" readonly="1"/>
+                                <field name="invoice_id" invisible="1" force_save="1"/>
+                                <field name="invoice_id_pseudo" readonly="1" force_save="1"/>
+                                <field name="partner_id" readonly="1" force_save="1"/>
+                                <field name="total_amount" readonly="1" force_save="1"/>
+                                <field name="discount_amount" invisible="1" force_save="1"/>
+                                <field name="discount_amount_pseudo" force_save="1"/>
+                                <field name="date_invoice" readonly="1" force_save="1"/>
+                                <field name="date_due" readonly="1" force_save="1"/>
+                                <field name="discount_due_date" readonly="1" force_save="1"/>
                             </tree>
                         </field>
 

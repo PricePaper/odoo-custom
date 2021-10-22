@@ -10,29 +10,44 @@ class CashCollectedLines(models.Model):
     discount = fields.Float(string='Discount(%)')
     discount_amount = fields.Float(string='Discount', digits=dp.get_precision('Product Price'))
 
+
+    def check_discount_validity(self, amount, discount_per=False, discount_amount=False):
+        customer_discount_per = self.env['ir.config_parameter'].sudo().get_param('accounting_extension.customer_discount_limit', 5.00)
+        if isinstance(customer_discount_per, str):
+            customer_discount_per = float(customer_discount_per)
+        discount_amount_limit = round(amount * (customer_discount_per / 100), 2)
+        if customer_discount_per and (customer_discount_per < discount_per or discount_amount_limit < discount_amount):
+            raise UserError(_('Cannot add discount more than {}%.'.format(customer_discount_per)))
+        return True
+
     @api.onchange('invoice_id')
     def onchange_invoice_id(self):
         if self.invoice_id:
-            self.amount = self.invoice_id.residual
+            self.amount = self.invoice_id.residual_signed
             days = (self.invoice_id.date_invoice - fields.Date.context_today(self)).days
             if self.invoice_id.payment_term_id.is_discount and abs(days) < self.invoice_id.payment_term_id.due_days:
-                self.discount = self.invoice_id.payment_term_id.discount_per
-                self.discount_amount = self.invoice_id.residual * (self.discount / 100)
-                self.amount = self.invoice_id.residual - self.discount_amount
+                discount_per = self.invoice_id.payment_term_id.discount_per
+                discount_amount = self.invoice_id.residual_signed * (self.discount / 100)
+                self.check_discount_validity(self.invoice_id.residual_signed, discount_per=discount_per, discount_amount=discount_amount)
+                self.discount = discount_per
+                self.discount_amount = discount_amount
+                self.amount = self.invoice_id.residual_signed - discount_amount
             else:
                 self.discount = 0
 
     @api.onchange('discount')
     def onchange_discount(self):
         if self.invoice_id:
-            self.discount_amount = self.invoice_id.residual * (self.discount / 100)
-            self.amount = self.invoice_id.residual - self.discount_amount
+            self.check_discount_validity(self.invoice_id.residual_signed, discount_per=self.discount)
+            self.discount_amount = round(self.invoice_id.residual_signed * (self.discount / 100), 2)
+            self.amount = self.invoice_id.residual_signed - self.discount_amount
 
     @api.onchange('discount_amount')
     def onchange_discount_amount(self):
         if self.invoice_id:
-            self.discount = (self.discount_amount / self.invoice_id.residual) * 100
-            self.amount = self.invoice_id.residual - self.discount_amount
+            self.check_discount_validity(self.invoice_id.residual_signed, discount_amount=self.discount_amount)
+            self.discount = round((self.discount_amount / self.invoice_id.residual_signed) * 100, 2)
+            self.amount = self.invoice_id.residual_signed - self.discount_amount
 
     @api.multi
     def create_payment(self):
@@ -148,3 +163,13 @@ class CashCollectedLines(models.Model):
                     'payment_ids': [(0, 0, vals) for vals in payment_vals],
                     'payment_method_id': payment_method.id,
                 })
+
+
+class ResConfigSettings(models.TransientModel):
+    _inherit = 'res.config.settings'
+
+    customer_discount_limit = fields.Float(
+        string='Customer Discount Limit',
+        config_parameter='accounting_extension.customer_discount_limit',
+        default=5.0
+    )

@@ -82,7 +82,7 @@ class Reportcommission_audit(models.AbstractModel):
                         else:
                             commission_vals[rec.sale_person_id] = {invoice.partner_id: {invoice : [vals]}}
 
-                        if invoice.paid_date > invoice.date_due:
+                        if invoice.type != 'out_refund' and invoice.paid_date > invoice.date_due:
                             extra_days = invoice.paid_date - invoice.date_due
                             if invoice.partner_id.company_id.commission_ageing_ids:
                                 commission_ageing = invoice.partner_id.company_id.commission_ageing_ids.filtered(
