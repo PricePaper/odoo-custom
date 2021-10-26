@@ -60,11 +60,12 @@
                                        type="object" name="add_percentage_lines" class="oe_edit_only oe_highlight"/>
                             </group>
                         </group>
-                        <div>
+                        <notebook>
+                        <page string="LINES">
                             <separator string="PRICE CHANGE LINES"/>
-                            <field name="cost_change_lines" mode="tree">
+                            <field name="cost_change_lines" mode="tree" >
                                 <tree>
-                                    <field name="product_id" required='1' />
+                                    <field name="product_id" required='1' context="{'partner_id':parent.vendor_id}"/>
                                     <field name="price_filter"/>
                                     <field name="price_change" required='1'/>
                                     <field name="old_cost"/>
@@ -79,7 +80,7 @@
                                 <form>
                                     <group>
                                         <group>
-                                            <field name="product_id" required='1' attrs="{'readonly':[('parent.is_done', '=', True)]}"/>
+                                            <field name="product_id" required='1' attrs="{'readonly':[('parent.is_done', '=', True)]}" context="{'partner_id':parent.vendor_id}"/>
                                             <field name="price_filter" widget="radio" required='1'
                                                    attrs="{'readonly':[('parent.is_done', '=', True)]}"/>
                                         </group>
@@ -113,6 +114,9 @@
                                     </group>
                                 </form>
                             </field>
+                          </page>
+                        </notebook>
+                        <div>
                             <button string="Apply Immediately" attrs="{'invisible':[('is_done', '=', True)]}"
                                     confirm="You are going to change the Cost. Are you sure you want to proceed? "
                                     type="object" name="cost_change_method" class="oe_read_only oe_highlight"/>

@@ -1777,7 +1777,7 @@ class SaleOrderLine(models.Model):
         """
         prices_all = self.env['customer.product.price']
         for rec in self.order_id.partner_id.customer_pricelist_ids:
-            if not rec.pricelist_id.expiry_date or rec.pricelist_id.expiry_date >= str(date.today()):
+            if not rec.pricelist_id.expiry_date or rec.pricelist_id.expiry_date >= date.today():
                 prices_all |= rec.pricelist_id.customer_product_price_ids
 
         prices_all = prices_all.filtered(

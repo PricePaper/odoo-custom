@@ -50,7 +50,7 @@ class Product(models.Model):
         self.ensure_one()
         moves = self.env['stock.move']
         move1 = self.stock_move_ids.filtered(
-            lambda move: move.sale_line_id and move.state not in ['cancel', 'done'] and not move.is_transit)
+            lambda move: move.sale_line_id and move.state not in ['cancel', 'done'] and not move.is_transit and move.picking_code == 'outgoing')
         move2 = self.stock_move_ids.filtered(
             lambda move: move.sale_line_id and move.state not in ['cancel', 'done'] and move.is_transit and move.product_uom_qty != move.quantity_done)
         moves = move1 + move2
