@@ -37,7 +37,7 @@
                           domain="[('is_sales_person','=',True)]"
                           attrs="{'readonly': [('state', 'not in', ['draft', 'sent'])]}"
                           force_save="1"/>
-                    <field name="commission_rule_ids" invisible='0' force_save="1"/>
+                    <field name="commission_rule_ids" invisible='1' force_save="1"/>
                 </field>
             </field>
         </record>
