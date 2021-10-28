@@ -7,10 +7,10 @@
             <field name="arch" type="xml">
                 <form string="Cost Change">
                     <sheet>
-                        <separator string="Cost Change Percentage"/>
+                        <separator string="Cost Change"/>
                         <group>
                             <group>
-                                <field name="percentage_change"/>
+                                <field name="percentage_change" help='If left it as zero fixed price change will apply to the product lines'/>
                             </group>
                         </group>
                     </sheet>

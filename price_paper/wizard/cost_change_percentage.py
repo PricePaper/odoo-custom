@@ -47,6 +47,9 @@ class CostChangePercentage(models.TransientModel):
                     'price_change': self.percentage_change,
                     'cost_change_parent': cost_change_parent and cost_change_parent.id
                 }
+                if self.percentage_change == 0:
+                    cost_change_line.update({'price_filter': 'fixed',
+                            'price_change': product.standard_price})
                 self.env['cost.change'].create(cost_change_line)
         return True
 

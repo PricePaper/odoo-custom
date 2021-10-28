@@ -20,7 +20,7 @@ class CostChangeParent(models.Model):
     update_vendor_pricelist = fields.Boolean('Update Vendor Pricelist', default=False)
     update_standard_price = fields.Boolean('Update Standard Price', default=True)
     update_burden = fields.Boolean('Update Burden%')
-    cost_change_lines = fields.One2many('cost.change', 'cost_change_parent', string='Lines')
+    cost_change_lines = fields.One2many('cost.change', 'cost_change_parent', string='Lines', copy=True)
     user_id = fields.Many2one('res.users', string='User', default=lambda self: self.env.user)
     product_ids = fields.Many2many('product.product', string="Products", compute='_compute_product_ids')
     name = fields.Char(string='Name', compute='compute_name', store=True, copy=False)
