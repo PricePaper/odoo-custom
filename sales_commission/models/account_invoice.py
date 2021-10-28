@@ -17,12 +17,38 @@ class AccountInvoice(models.Model):
     paid_date = fields.Date(string='Paid_date', compute='_compute_paid_date')
     commission_rule_ids = fields.Many2many('commission.rules', string='Commission Rules')
 
+    @api.model
+    def _prepare_refund(self, invoice, date_invoice=None, date=None, description=None, journal_id=None):
+        values = super(AccountInvoice, self)._prepare_refund(invoice, date_invoice, date, description, journal_id)
+        if invoice.sales_person_ids:
+            values['sales_person_ids'] = [(6, 0, invoice.sales_person_ids.ids)]
+        if invoice.commission_rule_ids:
+            values['commission_rule_ids'] = [(6, 0, invoice.commission_rule_ids.ids)]
+        return values
+
     @api.onchange('partner_id', 'company_id')
     def _onchange_partner_id(self):
         res = super(AccountInvoice, self)._onchange_partner_id()
         if self.partner_id and self.partner_id.sales_person_ids:
             self.sales_person_ids = self.partner_id.sales_person_ids
         return res
+
+    @api.multi
+    @api.onchange('sales_person_ids')
+    def onchange_sales_person_ids(self):
+        if self.sales_person_ids:
+            rules = self.partner_id.mapped('commission_percentage_ids').filtered(lambda r:r.sale_person_id in self.sales_person_ids).mapped('rule_id')
+            if rules:
+                sale_rep = rules.mapped('sales_person_id')
+                non_sale_rep = self.sales_person_ids - sale_rep
+                for rep in non_sale_rep:
+                    rules |= rep.default_commission_rule
+            else:
+                for rep in self.sales_person_ids:
+                    rules |= rep.mapped('default_commission_rule')
+            self.commission_rule_ids = rules
+        else:
+            self.commission_rule_ids = False
 
     def _compute_paid_date(self):
         for rec in self:
