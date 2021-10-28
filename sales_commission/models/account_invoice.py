@@ -17,6 +17,15 @@ class AccountInvoice(models.Model):
     paid_date = fields.Date(string='Paid_date', compute='_compute_paid_date')
     commission_rule_ids = fields.Many2many('commission.rules', string='Commission Rules')
 
+    @api.model
+    def _prepare_refund(self, invoice, date_invoice=None, date=None, description=None, journal_id=None):
+        values = super(AccountInvoice, self)._prepare_refund(invoice, date_invoice, date, description, journal_id)
+        if invoice.sales_person_ids:
+            values['sales_person_ids'] = [(6, 0, invoice.sales_person_ids.ids)]
+        if invoice.commission_rule_ids:
+            values['commission_rule_ids'] = [(6, 0, invoice.commission_rule_ids.ids)]
+        return values
+
     @api.onchange('partner_id', 'company_id')
     def _onchange_partner_id(self):
         res = super(AccountInvoice, self)._onchange_partner_id()
