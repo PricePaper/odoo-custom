@@ -13,6 +13,42 @@ class SaleCommission(models.Model):
     _name = 'sale.commission'
     _description = 'Sale Commission'
 
+
+    def restore_sales_persons_from_partner(self):
+        orders = self.env['sale.order'].search([('sales_person_ids', '=', False)])
+        scount = len(orders)
+
+        sql = 'INSERT INTO res_partner_sale_order_rel(sale_order_id, res_partner_id) VALUES '
+        for ip, sale in enumerate(orders, 1):
+            sales_person = sale.partner_id.sales_person_ids.ids
+            order = sale.id
+            for sp in sales_person:
+                sql += str((order, sp)) + ','
+            logging.info(f'sale order write  -> ORDER -> [%s] %d' %(order, ip))
+        else:
+            sql = sql[0:-1]
+            self.env.cr.execute(sql)
+
+        iorders = self.env['account.invoice'].search([('sales_person_ids', '=', False)])
+        count = len(iorders)
+
+
+        sql = 'INSERT INTO account_invoice_res_partner_rel(account_invoice_id, res_partner_id) VALUES '
+        for ip, inv in enumerate(iorders, 1):
+            sales_person = inv.partner_id.sales_person_ids.ids
+            invoice = inv.id
+            for sp in sales_person:
+                sql += str((inv.id, sp)) + ','
+            logging.info(f'Account Invoice write  -> Invoice -> [%s] %d' %(invoice, ip))
+        else:
+            sql = sql[0:-1]
+            self.env.cr.execute(sql)
+
+        logging.info('----SO----------> %d', scount)
+        logging.info('----INV----------> %d', count)
+
+        return True
+
     sale_person_id = fields.Many2one('res.partner', string='Sale Person')
     commission = fields.Float(string='Commission', digits=dp.get_precision('Product Price'))
     invoice_id = fields.Many2one('account.invoice', string='Invoice')

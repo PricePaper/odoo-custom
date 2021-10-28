@@ -13,7 +13,7 @@ class SaleOrder(models.Model):
     # -------------------------------------------------------------------------------
     #          RPC METHOD FOR RELATED PARTNER FIX
     # -------------------------------------------------------------------------------
-    @api.model
+    
     def restore_sales_persons_from_partner(self):
         orders = self.env['sale.order'].search([('sales_person_ids', '=', False)])
         scount = len(orders)
