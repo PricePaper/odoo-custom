@@ -30,10 +30,18 @@ class CostChangePercentage(models.TransientModel):
                 product_ids = products
 
         for product in product_ids:
-            vend_seq = product.seller_ids.filtered(lambda r: r.name == cost_change_parent.vendor_id).mapped('sequence')
+            vendor_res = product.seller_ids.filtered(lambda r: r.name == cost_change_parent.vendor_id)
+            product_code = vendor_res.mapped('product_code')
+            v_code = ''
+            for code in product_code:
+                if code != False:
+                    v_code = code
+                    break
+            vend_seq = vendor_res.mapped('sequence')
             non_seq = product.seller_ids.filtered(lambda r: r.name != cost_change_parent.vendor_id and (not r.date_end or r.date_end > fields.Date.today())).mapped('sequence')
             if not non_seq or min(vend_seq) <= min(non_seq):
                 cost_change_line = {
+                    'vendor_product_code': v_code,
                     'product_id': product.id,
                     'price_filter': 'percentage',
                     'price_change': self.percentage_change,

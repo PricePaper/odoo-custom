@@ -17,13 +17,20 @@ class CostChangeParent(models.Model):
     is_done = fields.Boolean(string='Done', copy=False, default=False)
     run_date = fields.Date('Update Date', default=fields.Date.context_today, copy=False)
     update_customer_pricelist = fields.Boolean('Update Customer Pricelist', default=True)
-    update_vendor_pricelist = fields.Boolean('Update Vendor Pricelist', default=True)
+    update_vendor_pricelist = fields.Boolean('Update Vendor Pricelist', default=False)
     update_standard_price = fields.Boolean('Update Standard Price', default=True)
     update_burden = fields.Boolean('Update Burden%')
     cost_change_lines = fields.One2many('cost.change', 'cost_change_parent', string='Lines')
     user_id = fields.Many2one('res.users', string='User', default=lambda self: self.env.user)
     product_ids = fields.Many2many('product.product', string="Products", compute='_compute_product_ids')
     name = fields.Char(string='Name', compute='compute_name', store=True, copy=False)
+
+    @api.onchange('vendor_id')
+    def onchange_vendor(self):
+        if self.vendor_id:
+            self.update_vendor_pricelist = True
+        else:
+            self.update_vendor_pricelist = False
 
     @api.depends('vendor_id', 'cost_change_lines.product_id')
     def compute_name(self):
@@ -111,6 +118,9 @@ class CostChange(models.Model):
     update_burden = fields.Boolean('Update Burden%')
     user_id = fields.Many2one('res.users', string='User', default=lambda self: self.env.user)
     cost_change_parent = fields.Many2one('cost.change.parent', string='Cost change Record')
+    vendor_product_code = fields.Char('Vendor code')
+
+
 
     @api.depends('new_cost', 'old_cost')
     def compute_price_difference_percent(self):
@@ -142,6 +152,19 @@ class CostChange(models.Model):
                 rec.burden_change = rec.product_id.burden_percent
             else:
                 rec.burden_change = 0.00
+
+    @api.onchange('product_id')
+    def onchange_product_id(self):
+        for rec in self:
+            if rec.product_id and rec.cost_change_parent.vendor_id:
+                vendor_res = rec.product_id.seller_ids.filtered(lambda r: r.name == rec.cost_change_parent.vendor_id)
+                product_code = vendor_res.mapped('product_code')
+                for code in product_code:
+                    if code != False:
+                        rec.vendor_product_code = code
+                        break
+            else:
+                rec.vendor_product_code = False
 
     @api.onchange('product_id', 'price_filter')
     def onchange_price_filter(self):
@@ -200,10 +223,12 @@ class CostChange(models.Model):
             if rec.cost_change_parent.vendor_id:
 
                 supplier_info = product.seller_ids.filtered(lambda r: r.name == rec.cost_change_parent.vendor_id)
-                if rec.price_filter == 'fixed':
-                    supplier_info.with_context({'user': self.user_id and self.user_id.id, 'cost_cron': True}).write({'price': rec.price_change})
-                else:
-                    supplier_info.with_context({'user': self.user_id and self.user_id.id, 'cost_cron': True}).price = float_round(supplier_info.price * ((100 + rec.price_change) / 100), precision_digits=2)
+                if supplier_info:
+                    if rec.price_filter == 'fixed':
+                        supplier_info.with_context({'user': self.user_id and self.user_id.id, 'cost_cron': True}).write({'price': rec.price_change, 'product_code': rec.vendor_product_code})
+                    else:
+                        price = float_round(product.standard_price * ((100 + rec.price_change) / 100), precision_digits=2)
+                        supplier_info.with_context({'user': self.user_id and self.user_id.id, 'cost_cron': True}).write({'price': price, 'product_code': rec.vendor_product_code})
 
             # Update Fixed Cost
             if rec.price_filter == 'fixed':

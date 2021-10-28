@@ -1042,6 +1042,7 @@ class SaleOrderLine(models.Model):
     selling_min_qty = fields.Float(string="Minimum Qty")
     note_expiry_date = fields.Date('Note Valid Upto')
     scraped_qty = fields.Float(compute='_compute_scrape_qty', string='Quantity Scraped', store=False)
+    date_planned = fields.Date(related='order_id.release_date', store=False, readonly=True, string='Date Planned')
 
     @api.depends('move_ids.picking_id.move_lines.scrapped')
     def _compute_scrape_qty(self):
@@ -1486,10 +1487,8 @@ class SaleOrderLine(models.Model):
         """
         values = super(SaleOrderLine, self)._prepare_procurement_values(group_id)
         self.ensure_one()
-        date_planned = self.order_id.release_date\
-            + timedelta(days=self.customer_lead or 0.0) - timedelta(days=self.order_id.company_id.security_lead)
         values.update({
-            'date_planned': date_planned
+            'date_planned': self.order_id.release_date
         })
         return values
 

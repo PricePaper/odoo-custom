@@ -65,6 +65,8 @@
                             <separator string="PRICE CHANGE LINES"/>
                             <field name="cost_change_lines" mode="tree" >
                                 <tree>
+                                    <field name="vendor_product_code"
+                                        attrs="{'column_invisible':[('parent.vendor_id', '=', False)]}"/>
                                     <field name="product_id" required='1' context="{'partner_id':parent.vendor_id}"/>
                                     <field name="price_filter"/>
                                     <field name="price_change" required='1'/>
@@ -74,13 +76,14 @@
                                     <field name="price_difference_per"/>
 
                                     <field name="burden_change"
-                                           attrs="{'readonly':[('parent.is_done', '=', True)], 'column_invisible':[('parent.update_burden', '!=', True)]}"/>
+                                           attrs="{'column_invisible':[('parent.update_burden', '!=', True)]}"/>
 
                                 </tree>
                                 <form>
                                     <group>
                                         <group>
                                             <field name="product_id" required='1' attrs="{'readonly':[('parent.is_done', '=', True)]}" context="{'partner_id':parent.vendor_id}"/>
+                                            <field name="vendor_product_code" attrs="{'readonly':[('parent.is_done', '=', True), ('parent.vendor_id', '=', False)]}"/>
                                             <field name="price_filter" widget="radio" required='1'
                                                    attrs="{'readonly':[('parent.is_done', '=', True)]}"/>
                                         </group>
