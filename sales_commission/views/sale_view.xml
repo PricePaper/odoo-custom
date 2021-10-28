@@ -10,6 +10,7 @@
                 </field>
                 <field name="user_id" position="after">
                     <field name="sales_person_ids" widget="many2many_tags"/>
+                    <field name="commission_rule_ids" invisible='1'/>
                 </field>
             </field>
         </record>
@@ -32,7 +33,11 @@
             <field name="inherit_id" ref="sale.view_order_form" />
             <field name="arch" type="xml">
                 <field name='payment_term_id' position="before">
-                    <field name="sales_person_ids" widget="many2many_tags" readonly="1"/>
+                    <field name="sales_person_ids" widget="many2many_tags"
+                          domain="[('is_sales_person','=',True)]"
+                          attrs="{'readonly': [('state', 'not in', ['draft', 'sent'])]}"
+                          force_save="1"/>
+                    <field name="commission_rule_ids" invisible='0' force_save="1"/>
                 </field>
             </field>
         </record>

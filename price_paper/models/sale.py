@@ -472,7 +472,10 @@ class SaleOrder(models.Model):
             sequence = self.env.ref('price_paper.seq_sc_sale_order', raise_if_not_found=False)
             if sequence:
                 vals['name'] = sequence._next()
-        return super(SaleOrder, self).create(vals)
+        order = super(SaleOrder, self).create(vals)
+        if order.sales_person_ids:
+            order.message_subscribe(partner_ids=order.sales_person_ids.ids)
+        return order
 
     @api.multi
     def write(self, vals):
@@ -501,6 +504,9 @@ class SaleOrder(models.Model):
                         order.adjust_delivery_line()
                     else:
                         order._remove_delivery_line()
+
+        if 'sales_person_ids' in vals and vals['sales_person_ids']:
+            self.message_subscribe(partner_ids=vals['sales_person_ids'][0][-1])
         return res
 
     @api.multi

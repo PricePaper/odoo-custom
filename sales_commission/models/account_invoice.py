@@ -11,17 +11,18 @@ from odoo.exceptions import UserError
 class AccountInvoice(models.Model):
     _inherit = 'account.invoice'
 
-    sales_person_ids = fields.Many2many('res.partner', related="partner_id.sales_person_ids", string='Associated Sales Persons', readonly=True)
+    sales_person_ids = fields.Many2many('res.partner', string='Associated Sales Persons')
     check_bounce_invoice = fields.Boolean(string='Check Bounce Invoice', default=False)
     sale_commission_ids = fields.One2many('sale.commission', 'invoice_id', string='Commission')
     paid_date = fields.Date(string='Paid_date', compute='_compute_paid_date')
+    commission_rule_ids = fields.Many2many('commission.rules', string='Commission Rules')
 
-    # @api.onchange('partner_id', 'company_id')
-    # def _onchange_partner_id(self):
-    #     res = super(AccountInvoice, self)._onchange_partner_id()
-    #     if self.partner_id and self.partner_id.sales_person_ids:
-    #         self.sales_person_ids = self.partner_id.sales_person_ids
-    #     return res
+    @api.onchange('partner_id', 'company_id')
+    def _onchange_partner_id(self):
+        res = super(AccountInvoice, self)._onchange_partner_id()
+        if self.partner_id and self.partner_id.sales_person_ids:
+            self.sales_person_ids = self.partner_id.sales_person_ids
+        return res
 
     def _compute_paid_date(self):
         for rec in self:
@@ -98,8 +99,8 @@ class AccountInvoice(models.Model):
                 0].payment_method_id.code != 'credit_card' and self.partner_id.payment_method == 'credit_card':
                 profit += self.amount_total * 0.03
 
-            rule_id = self.partner_id.commission_percentage_ids.filtered(
-                lambda r: r.sale_person_id == line.sale_person_id).mapped('rule_id')
+            rule_id = self.commission_rule_ids.filtered(
+                lambda r: r.sales_person_id == line.sale_person_id)
             if rule_id:
                 if rule_id.based_on in ['profit', 'profit_delivery']:
                     if profit <= 0:
@@ -174,24 +175,24 @@ class AccountInvoice(models.Model):
         commission_rec = self.env['sale.commission'].search([('invoice_id', '=', self.id), ('is_paid', '=', False)])
         if not commission_rec and self.type in ['out_invoice', 'out_refund']:
             profit = self.gross_profit
-            for rec in self.partner_id.commission_percentage_ids:
-                if not rec.rule_id:
-                    raise UserError(_('Commission rule is not configured for %s.' % (rec.sale_person_id.name)))
+            # commission_rule = self.partner_id.commission_percentage_ids.filtered(lambda r:r.sale_person_id and r.sale_person_id in self.sales_person_ids)
+            commission_rule = self.commission_rule_ids
+            for rec in commission_rule:
                 commission = 0
-                if rec.rule_id.based_on in ['profit', 'profit_delivery']:
-                    commission = profit * (rec.rule_id.percentage / 100)
+                if rec.based_on in ['profit', 'profit_delivery']:
+                    commission = profit * (rec.percentage / 100)
                     if profit <= 0:
                         commission =0
-                elif rec.rule_id.based_on == 'invoice':
+                elif rec.based_on == 'invoice':
                     amount = self.amount_total
-                    commission = amount * (rec.rule_id.percentage / 100)
+                    commission = amount * (rec.percentage / 100)
                 if commission == 0:
                     continue
                 if self.type == 'out_refund':
                     commission = -commission
                 sale = self.invoice_line_ids.mapped('sale_line_ids')
                 vals = {
-                    'sale_person_id': rec.sale_person_id.id,
+                    'sale_person_id': rec.sales_person_id.id,
                     'sale_id': sale and sale[-1].order_id.id,
                     'commission': commission,
                     'invoice_id': self.id,
