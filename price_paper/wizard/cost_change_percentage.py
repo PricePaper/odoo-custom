@@ -6,7 +6,7 @@ class CostChangePercentage(models.TransientModel):
     _name = 'cost.change.percentage'
     _description = "Cost change percentage"
 
-    percentage_change = fields.Float(string='Percetage change')
+    percentage_change = fields.Float(string='Percentage change')
 
     @api.multi
     def add_cost_change_lines(self):
