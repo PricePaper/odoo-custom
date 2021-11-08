@@ -26,6 +26,9 @@
                                     <div class="text-muted o_kanban_record_subtitle">
                                       <b><field name="origin"/></b>
                                     </div>
+                                    <div class="o_kanban_record_subtitle">
+                                      <b><field name="carrier_id"/></b>
+                                    </div>
                                     <div t-attf-class="o_kanban_record_subtitle {{( record.item_count.raw_value === record.reserved_qty.raw_value)? 'text-success':'text-danger'}}">
                                       <div>
                                           <b><field name="partner_id"/></b>

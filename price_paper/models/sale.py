@@ -58,6 +58,7 @@ class SaleOrder(models.Model):
     sc_child_order_count = fields.Integer(compute='_compute_sc_child_order_count')
     delivery_cost = fields.Float(string='Estimated Delivery Cost', readonly=True, copy=False)
     po_count = fields.Integer(compute='_compute_po_count', readonly=True)
+    active = fields.Boolean(track_visibility='onchange')
 
     @api.multi
     def action_view_purchase_orders(self):
@@ -548,13 +549,13 @@ class SaleOrder(models.Model):
                 order.delivery_rating_success = True
                 order.delivery_price = res['price']
                 order.delivery_message = res['warning_message']
-                if order.carrier_id.delivery_type not in ['fixed', 'based_on_rule']:
+                if order.carrier_id.delivery_type not in ['fixed', 'base_on_rule']:
                     order.delivery_cost = res['cost']
             else:
                 order.delivery_rating_success = False
                 order.delivery_price = 0.0
                 order.delivery_message = res['error_message']
-                if order.carrier_id.delivery_type not in ['fixed', 'based_on_rule']:
+                if order.carrier_id.delivery_type not in ['fixed', 'base_on_rule']:
                     order.delivery_cost = 0.0
 
     @api.multi
@@ -920,6 +921,27 @@ class SaleOrder(models.Model):
         self.write({'state': 'sale', 'confirmation_date': fields.Datetime.today()})
         return True
 
+
+    def so_duplicate(self):
+        new_records = self.env['sale.order']
+        for rec in self:
+            new_records |= rec.copy()
+        action_rec = self.env.ref('sale.action_quotations_with_onboarding')
+        action = action_rec.read()[0]
+        if len(new_records) > 1:
+          action['domain'] = [('id', 'in', new_records.ids)]
+        elif len(new_records) == 1:
+          action['views'] = [(self.env.ref('sale.view_order_form').id, 'form')]
+          action['res_id'] = new_records.ids[0]
+        return action
+
+    @api.model
+    def sc_archive_cron(self):
+        records = self.env['sale.order'].search([('active', '=', True), ('storage_contract', '=', True), ('state', 'in', ['released', 'done'])])
+        for record in records:
+            if not any(record.order_line.mapped(lambda l: l.storage_remaining_qty)):
+                record.write({'active': False})
+
     def run_storage(self):
         for order in self:
             route = self.env.ref('purchase_stock.route_warehouse0_buy', raise_if_not_found=True)
@@ -1128,7 +1150,7 @@ class SaleOrderLine(models.Model):
                 else:
                     line.storage_remaining_qty = line.qty_delivered - sum(sale_lines.mapped('qty_delivered')) - sum(sale_lines.mapped('scraped_qty'))
             else:
-                break
+                pass
 
     @api.model
     def _search_storage_remaining_qty(self, operator, value):
@@ -1298,7 +1320,7 @@ class SaleOrderLine(models.Model):
                         line.lst_price = uom_price[0].price
                         if line.product_id.cost:
                             line.working_cost = uom_price[0].cost
-            if line.is_delivery and line.order_id.carrier_id and line.order_id.carrier_id.delivery_type not in ['based_on_rule', 'fixed']:
+            if line.is_delivery and line.order_id.carrier_id and line.order_id.carrier_id.delivery_type not in ['base_on_rule', 'fixed']:
                 line.working_cost = line.order_id.delivery_cost
                 line.lst_price = line.order_id.delivery_price
 
@@ -1479,6 +1501,7 @@ class SaleOrderLine(models.Model):
                         raise ValidationError(_('You are not allowed to reduce price below product cost. Contact your sales Manager.'))
                     if line.price_unit >= line.working_cost and vals.get('price_unit') < line.working_cost:
                         raise ValidationError(_('You are not allowed to reduce price below product cost. Contact your sales Manager.'))
+
         res = super(SaleOrderLine, self).write(vals)
         for line in self:
             if vals.get('price_unit') and line.order_id.state == 'sale':
@@ -1638,7 +1661,7 @@ class SaleOrderLine(models.Model):
                     line.profit_margin = 0.0
                     if line.is_delivery and line.order_id.carrier_id:
                         price_unit = line.order_id.carrier_id.average_company_cost
-                        if line.order_id.carrier_id.delivery_type not in ['fixed', 'based_on_rule']:
+                        if line.order_id.carrier_id.delivery_type not in ['fixed', 'base_on_rule']:
                             price_unit = line.order_id.delivery_cost
                         line.profit_margin = line.price_subtotal - price_unit
                 else:

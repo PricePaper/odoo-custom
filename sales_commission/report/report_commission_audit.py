@@ -25,16 +25,14 @@ class Reportcommission_audit(models.AbstractModel):
             from_date = datetime.strptime(from_date, "%Y%m%d").date()
             to_date = "%s%s%s" %(year, month, month_last_date)
             to_date = datetime.strptime(to_date, "%Y%m%d").date()
-            invoices = self.env['account.invoice'].search([('state', '=', 'paid'), ('type', 'in', ('out_invoice', 'out_refund'))])
+            invoices = self.env['account.invoice'].search([('state', '=', 'paid'), ('type', 'in', ('out_invoice', 'out_refund')), ('check_bounce_invoice', '=', False)])
             invoices = invoices.filtered(lambda r: r.paid_date and r.paid_date >= from_date and r.paid_date <= to_date)
             for invoice in invoices:
                 if invoice.paid_date and invoice.paid_date >= from_date and invoice.paid_date <= to_date:
-                    for rec in invoice.partner_id.commission_percentage_ids:
-                        if not rec.rule_id:
-                            continue
+                    for rec in invoice.commission_rule_ids:
                         commission = 0
                         profit = invoice.gross_profit
-                        if rec.rule_id.based_on in ['profit', 'profit_delivery']:
+                        if rec.based_on in ['profit', 'profit_delivery']:
                             if invoice.payment_term_id.due_days:
                                 days = invoice.payment_term_id.due_days
                                 if invoice.paid_date and invoice.paid_date > invoice.date_invoice + relativedelta(days=days):
@@ -46,10 +44,10 @@ class Reportcommission_audit(models.AbstractModel):
                                 profit += invoice.amount_total * 0.03
                             if profit <= 0:
                                 continue
-                            commission = profit * (rec.rule_id.percentage / 100)
-                        elif rec.rule_id.based_on == 'invoice':
+                            commission = profit * (rec.percentage / 100)
+                        elif rec.based_on == 'invoice':
                             amount = invoice.amount_total
-                            commission = amount * (rec.rule_id.percentage / 100)
+                            commission = amount * (rec.percentage / 100)
                         if commission == 0:
                             continue
                         type = 'Invoice'
@@ -59,7 +57,7 @@ class Reportcommission_audit(models.AbstractModel):
 
                         sale = invoice.invoice_line_ids.mapped('sale_line_ids').mapped('order_id')
                         vals = {
-                            'sale_person_id': rec.sale_person_id,
+                            'sale_person_id': rec.sales_person_id,
                             'sale_id': sale and sale,
                             'commission': commission,
                             'invoice_id': invoice,
@@ -71,16 +69,16 @@ class Reportcommission_audit(models.AbstractModel):
 
 
 
-                        if commission_vals.get(rec.sale_person_id):
-                            if commission_vals.get(rec.sale_person_id).get(invoice.partner_id):
-                                if commission_vals.get(rec.sale_person_id).get(invoice.partner_id).get(invoice):
-                                    commission_vals[rec.sale_person_id][invoice.partner_id][invoice].append(vals)
+                        if commission_vals.get(rec.sales_person_id):
+                            if commission_vals.get(rec.sales_person_id).get(invoice.partner_id):
+                                if commission_vals.get(rec.sales_person_id).get(invoice.partner_id).get(invoice):
+                                    commission_vals[rec.sales_person_id][invoice.partner_id][invoice].append(vals)
                                 else:
-                                    commission_vals[rec.sale_person_id][invoice.partner_id][invoice] = [vals]
+                                    commission_vals[rec.sales_person_id][invoice.partner_id][invoice] = [vals]
                             else:
-                                commission_vals[rec.sale_person_id][invoice.partner_id] = {invoice : [vals]}
+                                commission_vals[rec.sales_person_id][invoice.partner_id] = {invoice : [vals]}
                         else:
-                            commission_vals[rec.sale_person_id] = {invoice.partner_id: {invoice : [vals]}}
+                            commission_vals[rec.sales_person_id] = {invoice.partner_id: {invoice : [vals]}}
 
                         if invoice.type != 'out_refund' and invoice.paid_date > invoice.date_due:
                             extra_days = invoice.paid_date - invoice.date_due
@@ -91,7 +89,7 @@ class Reportcommission_audit(models.AbstractModel):
                                 if commission_ageing and commission_ageing[0].reduce_percentage:
                                     commission = commission_ageing[0].reduce_percentage * commission / 100
                                     vals = {
-                                        'sale_person_id': rec.sale_person_id,
+                                        'sale_person_id': rec.sales_person_id,
                                         'sale_id': sale,
                                         'commission': -commission,
                                         'invoice_id': invoice,
@@ -100,16 +98,16 @@ class Reportcommission_audit(models.AbstractModel):
                                         'invoice_amount': invoice.amount_total,
                                         'commission_date': invoice.paid_date
                                     }
-                                    if commission_vals.get(rec.sale_person_id):
-                                        if commission_vals.get(rec.sale_person_id).get(invoice.partner_id):
-                                            if commission_vals.get(rec.sale_person_id).get(invoice.partner_id).get(invoice):
-                                                commission_vals[rec.sale_person_id][invoice.partner_id][invoice].append(vals)
+                                    if commission_vals.get(rec.sales_person_id):
+                                        if commission_vals.get(rec.sales_person_id).get(invoice.partner_id):
+                                            if commission_vals.get(rec.sales_person_id).get(invoice.partner_id).get(invoice):
+                                                commission_vals[rec.sales_person_id][invoice.partner_id][invoice].append(vals)
                                             else:
-                                                commission_vals[rec.sale_person_id][invoice.partner_id][invoice] = [vals]
+                                                commission_vals[rec.sales_person_id][invoice.partner_id][invoice] = [vals]
                                         else:
-                                            commission_vals[rec.sale_person_id][invoice.partner_id] = {invoice : [vals]}
+                                            commission_vals[rec.sales_person_id][invoice.partner_id] = {invoice : [vals]}
                                     else:
-                                        commission_vals[rec.sale_person_id] = {invoice.partner_id: {invoice : [vals]}}
+                                        commission_vals[rec.sales_person_id] = {invoice.partner_id: {invoice : [vals]}}
         commission_diff = {}
         for rep,partners in commission_vals.items():
             for partner,invoices in partners.items():

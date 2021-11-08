@@ -51,6 +51,7 @@
                                 <field name="product_ids" invisible="1"/>
                             </group>
                             <group>
+                                <field name="update_vendor_pricelist" invisible='1'/>
                                 <field name="vendor_id" domain="[('supplier', '=', 'True')]"
                                        options="{'no_create': True, 'no_edit': True}"
                                        attrs="{'readonly':[('is_done', '=', True)]}"/>

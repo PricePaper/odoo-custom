@@ -139,5 +139,23 @@
               </xpath>
            </field>
         </record>
+
+
+        <record id="view_move_picking_form_inherit_batch_delivery" model="ir.ui.view">
+            <field name="name">view.move.picking.form.inherit.batch.delivery</field>
+            <field name="model">stock.move</field>
+             <field eval="999" name="priority"/>
+            <field name="inherit_id" ref="stock.view_move_form"/>
+            <field name="arch" type="xml">
+                 <xpath expr="//sheet" position="after">
+
+                     <div class="oe_chatter">
+                        <field name="message_follower_ids" widget="mail_followers"/>
+                         <field name="activity_ids" widget="mail_activity"/>
+                        <field name="message_ids" widget="mail_thread"/>
+                    </div>
+                </xpath>
+            </field>
+        </record>
     </data>
 </odoo>

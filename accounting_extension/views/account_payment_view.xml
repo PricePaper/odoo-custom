@@ -90,10 +90,14 @@
             <field name="arch" type="xml">
 
                 <field name="communication" position="after">
-                    <field name="payment_reference" readonly="0"/>
+                    <field name="payment_reference" readonly="1"/>
+                    <field name="batch_payment_id" attrs="{'readonly': [('state', '!=', 'cancelled')], 'invisible':[('batch_payment_id','=', False)]}" groups="account.group_account_manager"/>
                 </field>
                  <xpath expr="//button[@name='cancel']" position="attributes">
                     <attribute name="attrs">{'invisible': [('state', 'in', ['cancelled'])]}</attribute>
+                </xpath>
+                <xpath expr="//sheet/group/group[2]" position="after">
+                    <field name="invoice_ids" readonly="1" attrs="{'invisible':[('invoice_ids','=', [])]}"/>
                 </xpath>
                 <xpath expr="/form/sheet" position="inside">
                     <field name="has_payment_lines" invisible="1"/>

@@ -10,6 +10,7 @@ class DeviatedCostContract(models.Model):
     name = fields.Char(string="Contract Name")
     expiration_date = fields.Datetime(string="Expiration Date")
     partner_product_ids = fields.One2many('res.category.product.cost', 'partner_category_id', string="Products")
+    partner_ids = fields.Many2many('res.partner', string="Partners")
 
 
 DeviatedCostContract()

@@ -3,10 +3,12 @@ from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 from operator import itemgetter
 from itertools import groupby
+from odoo.addons import decimal_precision as dp
 from odoo.tools.float_utils import float_compare, float_round, float_is_zero
 
 class StockMove(models.Model):
-    _inherit = "stock.move"
+    _name = "stock.move"
+    _inherit = ["stock.move", "mail.thread", "mail.activity.mixin"]
 
     picking_status = fields.Char(string='Picking Status', compute='_compute_picking_state')
     delivery_notes = fields.Text(string='Delivery Notes', related='partner_id.delivery_notes')
@@ -21,6 +23,24 @@ class StockMove(models.Model):
     qty_to_transfer = fields.Float(String="Qty in Location", compute='_compute_qty_to_transfer', store=False)
     unit_price = fields.Float(string="Unit Price", copy=False, compute='_compute_total_price', store=False)
     total = fields.Float(string="Subtotal", copy=False, compute='_compute_total_price', store=False)
+    product_uom_qty = fields.Float(
+        'Initial Demand',
+        digits=dp.get_precision('Product Unit of Measure'),
+        default=0.0, required=True, states={'done': [('readonly', True)]},
+        help="This is the quantity of products from an inventory "
+             "point of view. For moves in the state 'done', this is the "
+             "quantity of products that were actually moved. For other "
+             "moves, this is the quantity of product that is planned to "
+             "be moved. Lowering this quantity does not generate a "
+             "backorder. Changing this quantity on assigned moves affects "
+             "the product reservation, and should be done with care.", track_visibility='onchange')
+    reserved_availability = fields.Float(
+        'Quantity Reserved', compute='_compute_reserved_availability',
+        digits=dp.get_precision('Product Unit of Measure'),
+        readonly=True, help='Quantity that has already been reserved for this move', track_visibility='onchange')
+    quantity_done = fields.Float('Quantity Done', compute='_quantity_done_compute',
+                                 digits=dp.get_precision('Product Unit of Measure'),
+                                 inverse='_quantity_done_set', track_visibility='onchange')
 
     @api.multi
     def _run_valuation(self, quantity=None):
@@ -388,6 +408,7 @@ class StockMove(models.Model):
 
         for move in self:
             # qty_available always shows the quanity in requested (UOM).
+            reserved_qty = move.reserved_availability
             move._do_unreserve()
             available_qty = move.qty_available
             if available_qty <= 0 and move.qty_update > 0:
@@ -404,6 +425,15 @@ class StockMove(models.Model):
                 raise UserError(_("Can't reserve more product than requested..!"))
             else:
                 move._action_assign_reset_qty()
+                msg = "<ul><li>" + _("Quantity Reserved") + ": %s <span aria-label='Changed' class='fa fa-long-arrow-right' role='img' title='Changed'/> %s </li></ul>" % (reserved_qty, move.qty_update,)
+                move.message_post(
+                body=msg,
+                subtype_id=self.env.ref('mail.mt_note').id)
+                move.picking_id.message_post(
+                body=msg,
+                subtype_id=self.env.ref('mail.mt_note').id)
+                if move.is_transit:
+                    move.quantity_done = move.reserved_availability
                 if move.is_transit:
                     move.quantity_done = move.reserved_availability
 

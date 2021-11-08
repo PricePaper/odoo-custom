@@ -40,8 +40,8 @@ class StockPickingBatch(models.Model):
     to_invoice = fields.Boolean(string='Need Invoice', compute='_compute_to_invoice_state')
     invoice_ids = fields.Many2many('account.invoice', compute='_compute_invoice_ids')
     show_warning = fields.Boolean(string='Pending Line Warning')
-    cash_amount = fields.Float(string='Cash Amount', digits=dp.get_precision('Product Price'))
-    cheque_amount = fields.Float(string='Check Amount', digits=dp.get_precision('Product Price'))
+    cash_amount = fields.Float(string='Cash Amount', digits=dp.get_precision('Product Price'), track_visibility='onchange')
+    cheque_amount = fields.Float(string='Check Amount', digits=dp.get_precision('Product Price'), track_visibility='onchange')
 
     state = fields.Selection([
         ('draft', 'Draft'),

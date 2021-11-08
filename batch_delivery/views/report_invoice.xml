@@ -944,7 +944,7 @@
                     <t t-set="company" t-value="o.company_id.sudo()"/>
                     <t t-set="lang" t-value="o.user_id.sudo().lang if o.type in ('in_invoice', 'in_refund') else o.partner_id.lang"/>
                     <t t-foreach="range(2)" t-as="iv">
-                         <t t-call="batch_delivery.report_ppt_invoice_document_with_payments_quick_sale" t-lang="lang"/>
+                         <t t-call="batch_delivery.ppt_custom_invoice_template" t-lang="lang"/>
                     </t>
                 </t>
             </t>

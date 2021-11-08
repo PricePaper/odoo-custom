@@ -11,6 +11,20 @@
             <field name="model">rma.ret.mer.auth</field>
             <field name="inherit_id" ref="scs_rma.exchange_rma_ret_mer_auth_form"/>
             <field name="arch" type="xml">
+                <xpath expr="//field[@name='picking_rma_id']" position="after">
+                    <field name="shipping_address_id" attrs="{'invisible': [('rma_type', '!=', 'customer')]}"/>
+                    <field name="pickup_address_id" attrs="{'invisible': [('rma_type', '!=', 'supplier')]}"/>
+                    <field name="invoice_address_id" attrs="{'invisible': [('rma_type', '!=', 'customer')]}"/>
+                </xpath>
+                <xpath expr="//button[@name='count_stock_picking']" position="replace">
+                    <button type="object" name="count_stock_picking" class="oe_stat_button" icon="fa-truck" attrs="{'invisible': [('pick_count', '=', 0)]}">
+                           <field name="pick_count" widget="statinfo" string="Stock Pickings"/>
+                    </button>
+                </xpath>
+                <xpath expr="//button[@name='rma_set_draft']" position="replace">
+                    <button name="rma_set_draft" attrs="{'invisible':[('state','not in', ['approve', 'cancel'])]}" string="Set To Draft" type="object" class="oe_highlight"/>
+                    <button name="action_cancel" type="object" class="btn btn-secondary" string="Cancel" attrs="{'invisible': [('state', '=', 'cancel')]}"/>
+                </xpath>
                 <xpath expr="//form/sheet/notebook" position="before">
                     <button type="object" name="add_resource_lines" string="Browse Lines"
                             class="oe_edit_only oe_highlight oe_right"
@@ -20,9 +34,14 @@
                     <attribute name="domain">[('partner_id', '=', partner_id), ('state', '=', 'done')]</attribute>
 
                 </xpath>
-
+                <xpath expr="//field[@name='purchase_order_id']" position="attributes">
+                    <attribute name="domain">[('partner_id', '=', supplier_id), ('state', 'in',  ['purchase', 'received', 'done'])]</attribute>
+                </xpath>
                 <xpath expr="//field[@name='partner_id']" position="attributes">
-                     <attribute name="domain">[('parent_id','=', False), ('type', '=', 'contact')]</attribute>
+                     <attribute name="domain">[('parent_id','=', False), ('type', '=', 'contact'), ('customer','=', True)]</attribute>
+                </xpath>
+                <xpath expr="//field[@name='supplier_id']" position="attributes">
+                     <attribute name="domain">[('supplier','=', True)]</attribute>
                 </xpath>
                 <xpath expr="//field[@name='rma_sale_lines_ids']/tree/field[@name='product_id']" position="after">
                     <field name="so_line_id" invisible="1"/>
@@ -300,6 +319,10 @@
                     <field name="return_product_uom" force_save="1"/>
                 </field>
             </field>
+        </record>
+
+        <record id="scs_rma.action_rma_ret_mer_auth_rma" model="ir.actions.act_window">
+            <field name="context">{'delete': False}</field>
         </record>
     </data>
 </odoo>

@@ -173,8 +173,8 @@ class AccountInvoice(models.Model):
         """
 
         for line in lines:
-            payment_date = max([rec.payment_date for rec in self.payment_ids])
-            if payment_date > self.date_due:
+            payment_date = self.paid_date
+            if payment_date and payment_date > self.date_due:
                 extra_days = payment_date - self.date_due
                 if self.partner_id.company_id.commission_ageing_ids:
                     commission_ageing = self.partner_id.company_id.commission_ageing_ids.filtered(

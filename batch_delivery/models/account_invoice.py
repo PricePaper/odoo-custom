@@ -120,7 +120,13 @@ class AccountInvoice(models.Model):
         invoice = super(AccountInvoice, self).create(vals)
         if not invoice.move_name or not invoice.number:
             if invoice.journal_id and invoice.journal_id.sequence_id:
-                new_name = invoice.journal_id.sequence_id.with_context(ir_sequence_date=invoice.date_invoice or fields.Date.today()).next_by_id()
+                journal = invoice.journal_id
+                sequence = journal.sequence_id
+                if invoice and invoice.type in ['out_refund', 'in_refund'] and journal.refund_sequence:
+                    if not journal.refund_sequence_id:
+                        raise UserError(_('Please define a sequence for the credit notes'))
+                    sequence = journal.refund_sequence_id
+                new_name = sequence.with_context(ir_sequence_date=invoice.date_invoice or fields.Date.today()).next_by_id()
                 invoice.write({'number': new_name, 'move_name': new_name})
         return invoice
 

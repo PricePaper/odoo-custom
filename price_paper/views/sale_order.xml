@@ -492,19 +492,19 @@ action = records.env['sale.order'].confirm_multiple_orders(records)
                         <field name="invoice_status" invisible="1"/>
                         <button name="%(sale.action_view_sale_advance_payment_inv)d" string="Create Invoice"
                             type="action" class="btn-primary"
-                            attrs="{'invisible': ['|', ('invoice_status', '!=', 'to invoice'), ('state', '=', 'done')]}"/>
+                            attrs="{'invisible': ['|', '|', ('active', '=', False), ('invoice_status', '!=', 'to invoice'), ('state', '=', 'done')]}"/>
                         <button name="%(sale.action_view_sale_advance_payment_inv)d" string="Create Invoice"
                                 type="action" context="{'default_advance_payment_method': 'percentage'}"
-                                attrs="{'invisible': ['|',('invoice_status', '!=', 'no'), ('state', 'not in', ['sale', 'waiting', 'ordered'])]}"/>
-                        <button name="action_storage_contract_confirm" type="object" string="Confirm" class="oe_highlight" states="draft"/>
-                        <button name="action_create_storage_do" type="object" string="Create PO" class="oe_highlight" attrs="{'invisible': ['|', ('state', '!=', 'sale'), ('sc_po_done', '=', True)]}" groups="account.group_account_manager, purchase.group_purchase_manager"/>
-                        <button name="action_release" groups="account.group_account_manager" type="object" string="Release" class="oe_highlight" attrs="{'invisible': ['|', ('invoice_status', '!=', 'invoiced'), ('state', '!=', 'received')]}"/>
-                        <button name="action_restore" groups="account.group_account_manager" type="object" string="UnRelease" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'released')]}"/>
-                        <button name="action_cancel" states="draft,sent,sale" type="object" string="Cancel"/>
-                        <button name="action_draft" states="cancel" type="object" string="Set to Quotation"/>
+                                attrs="{'invisible': ['|', '|', ('active', '=', False), ('invoice_status', '!=', 'no'), ('state', 'not in', ['sale', 'waiting', 'ordered'])]}"/>
+                        <button name="action_storage_contract_confirm" type="object" string="Confirm" class="oe_highlight" states="draft" attrs="{'invisible': [('active', '=', False)]}"/>
+                        <button name="action_create_storage_do" type="object" string="Create PO" class="oe_highlight" attrs="{'invisible': ['|', '|', ('active', '=', False), ('state', '!=', 'sale'), ('sc_po_done', '=', True)]}" groups="account.group_account_manager, purchase.group_purchase_manager"/>
+                        <button name="action_release" groups="account.group_account_manager" type="object" string="Release" class="oe_highlight" attrs="{'invisible': ['|', '|', ('active', '=', False), ('invoice_status', '!=', 'invoiced'), ('state', '!=', 'received')]}"/>
+                        <button name="action_restore" groups="account.group_account_manager" type="object" string="UnRelease" class="oe_highlight" attrs="{'invisible': ['|', ('active', '=', False), ('state', '!=', 'released')]}"/>
+                        <button name="action_cancel" states="draft,sent,sale" type="object" string="Cancel" attrs="{'invisible': [('active', '=', False)]}"/>
+                        <button name="action_draft" states="cancel" type="object" string="Set to Quotation" attrs="{'invisible': [('active', '=', False)]}"/>
                         <button name="action_done" type="object" string="Lock" states="received"
-                        help="If the sale is locked, you can not modify it anymore. However, you will still be able to invoice or deliver."/>
-                    <button name="action_unlock" type="object" string="Unlock" states="done" groups="sales_team.group_sale_manager"/>
+                        help="If the sale is locked, you can not modify it anymore. However, you will still be able to invoice or deliver." attrs="{'invisible': [('active', '=', False)]}"/>
+                        <button name="action_unlock" type="object" string="Unlock" states="done" groups="sales_team.group_sale_manager" attrs="{'invisible': [('active', '=', False)]}"/>
                         <field name="state" widget="statusbar" statusbar_visible="draft,sale"/>
                     </header>
                     <sheet>
@@ -531,7 +531,9 @@ action = records.env['sale.order'].confirm_multiple_orders(records)
                                 icon="fa-usd">
                                 <field string="Sales" name="sc_child_order_count" widget="statinfo"/>
                             </button>
-
+                            <button name="toggle_active" type="object" class="oe_stat_button" icon="fa-archive" attrs="{'invisible': [('active', '=', True)]}">
+                                <field name="active" widget="boolean_button" options="{&quot;terminology&quot;: &quot;archive&quot;}"/>
+                            </button>
                         </div>
                         <div class="oe_title">
                             <h1>
@@ -649,10 +651,58 @@ action = records.env['sale.order'].confirm_multiple_orders(records)
                                         <field name="price_tax" invisible="1"/>
                                     </tree>
                                     <form>
-                                        <field name="purchase_line_ids"/>
+                                    <field name="display_type" invisible="1"/>
+                                    <!--
+                                        We need the sequence field to be here for new lines to be added at the correct position.
+                                        TODO: at some point we want to fix this in the framework so that an invisible field is not required.
+                                    -->
+                                    <field name="sequence" invisible="1"/>
+                                    <group>
+                                        <group attrs="{'invisible': [('display_type', '!=', False)]}">
+                                            <field name="product_id"/>
+                                            <label for="product_uom_qty" string="Ordered Quantity"/>
+                                            <div>
+                                                <field name="product_uom_qty" class="oe_inline"/>
+                                                <field name="product_uom" force_save="1" groups="uom.group_uom" class="oe_inline oe_no_button"/>
+                                            </div>
+                                            <field name="selling_min_qty"/>
+                                            <field name="price_unit"/>
+                                            <field name="qty_delivered" string="Received Quantity"/>
+                                            <field name="storage_remaining_qty" string="Remaining quantity"/>
+                                            <field name="qty_invoiced" string="Invoiced Quantity"/>
+                                            <label for="discount" groups="sale.group_discount_per_so_line"/>
+                                            <div name="discount" groups="sale.group_discount_per_so_line">
+                                                <field name="discount" class="oe_inline"/> %
+                                            </div>
+                                            <field name="price_subtotal"/>
+                                        </group>
+                                        <group attrs="{'invisible': [('display_type', '!=', False)]}">
+                                            <field name="tax_id" widget="many2many_tags" options="{'no_create': True}" context="{'search_view_ref': 'account.account_tax_view_search'}" domain="[('type_tax_use','=','sale'),('company_id','=',parent.company_id)]" attrs="{'readonly': [('qty_invoiced', '&gt;', 0)]}"/>
+                                            <field name="price_tax"/>
+                                            <label for="customer_lead"/>
+                                            <div>
+                                                <field name="customer_lead" class="oe_inline"/> days
+                                            </div>
+                                            <label for="analytic_tag_ids" groups="analytic.group_analytic_tags"/>
+                                            <div>
+                                                <field name="analytic_tag_ids" widget="many2many_tags" groups="analytic.group_analytic_tags" options="{'color_field': 'color'}"/>
+                                            </div>
+                                        </group>
+                                    </group>
+                                    <label for="name" string="Description" attrs="{'invisible': [('display_type', '!=', False)]}"/>
+                                    <label for="name" string="Section Name (eg. Products, Services)" attrs="{'invisible': [('display_type', '!=', 'line_section')]}"/>
+                                    <label for="name" string="Note" attrs="{'invisible': [('display_type', '!=', 'line_note')]}"/>
+                                    <field name="name"/>
+                                    <div groups="base.group_no_one" attrs="{'invisible': [('display_type', '!=', False)]}">
+                                        <label for="invoice_lines"/>
                                         <field name="invoice_lines"/>
+                                        <label for="purchase_line_ids"/>
+                                        <field name="purchase_line_ids"/>
+                                        <label for="storage_contract_line_ids"/>
                                         <field name="storage_contract_line_ids"/>
-                                    </form>
+                                    </div>
+                                    <field name="state" invisible="1"/>
+                                </form>
 
                                 </field>
                                 <group class="oe_subtotal_footer oe_right" colspan="2" name="sale_total">

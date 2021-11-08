@@ -297,6 +297,30 @@ class PurchaseOrder(models.Model):
                 [('requisition_id', '!=', False), ('requisition_id', '=', purchase_order.requisition_id.id),
                  ('id', 'not in', purchase_order.ids)])
             orders.button_cancel()
+            tr = ''
+            for po in self:
+                for line in po.order_line:
+                    product = line.product_id
+                    if line.product_id.standard_price != line.price_unit:
+                        tr += '''<tr>
+                            <td><b>{}</b></td>
+                            <td><b>${cost:.2f}</b></td>
+                            <td style="color:red"><b>${price:.2f}</b></td>
+                        </tr>'''.format(product.display_name, cost=product.standard_price, price=line.price_unit)
+            if tr:
+                note = '''
+                <table class="table table-bordered">
+                    <tbody>
+                    <tr><td><b>Product</b></td><td><b>Cost</b></td><td><b>PO Price</b></td></tr>
+                    {}
+                    </tbody>
+                </table>
+                '''.format(tr)
+                activity_vals = {
+                        'activity_type_id': self.env.ref('mail.mail_activity_data_todo').id,
+                        'user_id': purchase_order.user_id.id if purchase_order.user_id else self.env.user.id
+                    }
+                purchase_order.activity_schedule(summary="Cost Discrepancy", note=note, **activity_vals)
         return super(PurchaseOrder, self).button_confirm()
 
 

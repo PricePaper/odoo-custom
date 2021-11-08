@@ -238,8 +238,6 @@ class ProductProduct(models.Model):
         """ remove superseded if there is a child product with superseded set while unarchiving,
         archive reordering rules before archiving product
         """
-
-        result = super(ProductProduct, self).toggle_active()
         if self.qty_available > 0 and self.active:
             raise ValidationError(_("Can't archive product with inventory on hand"))
 
@@ -247,7 +245,7 @@ class ProductProduct(models.Model):
         if self.active:
             to_unlink = supersede_obj.search([('old_product', '=', self.id)])
             to_unlink.unlink()
-        return result
+        return super(ProductProduct, self).toggle_active()
 
     @api.multi
     def write(self, vals):
