@@ -24,7 +24,7 @@
                 file="price_maintanance.report_pricelist"
                 name="price_maintanance.report_pricelist"
                 paperformat="paperformat_pricelist_report"
-                print_report_name="'%s - %s' % (object.name, object.expiry_date or '')"
+                print_report_name="'%s - Valid Until - %s' % (object.name, object.expiry_date or '')"
         />
     </data>
 </odoo>

@@ -22,7 +22,7 @@
                </style>
                <div class="col-6 text-left">
                     <strong>Date Prepared : </strong>
-                    <span t-esc="datetime.datetime.now().strftime('%Y-%m-%d')"></span>
+                    <span t-esc="datetime.datetime.now().strftime('%m/%d/%Y')"></span>
                     <!-- <span t-esc="context_timestamp(datetime.date.today()).strftime('%Y-%m-%d')"/> -->
                </div>
                <div class="col-6 text-left">
