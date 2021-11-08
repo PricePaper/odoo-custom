@@ -114,7 +114,7 @@ class CostChange(models.Model):
     price_difference = fields.Float(compute='compute_price_difference_percent', string="Price Difference")
     price_difference_per = fields.Float(compute='compute_price_difference_percent', string="Price Difference %")
     burden_change = fields.Float(string='Burden%')
-    burden_old = fields.Float(string='Old Burden%')
+    burden_old = fields.Float(compute='set_old_price', string='Old Burden%', store=True)
     update_burden = fields.Boolean('Update Burden%')
     user_id = fields.Many2one('res.users', string='User', default=lambda self: self.env.user)
     cost_change_parent = fields.Many2one('cost.change.parent', string='Cost change Record')
@@ -139,9 +139,6 @@ class CostChange(models.Model):
             if rec.product_id:
                 rec.old_cost = rec.product_id.standard_price
                 rec.burden_old = rec.product_id.burden_percent
-                vendors = rec.product_id.seller_ids.mapped('name')
-                vendors = vendors and vendors.ids
-
             else:
                 rec.old_cost = 0.00
 
@@ -239,7 +236,7 @@ class CostChange(models.Model):
                     {'user': self.user_id and self.user_id.id, 'cost_cron': True}).standard_price = float_round(product.standard_price * (
                             (100 + rec.price_change) / 100), precision_digits=2)
             # Update burden%
-            if rec.update_burden and rec.burden_change:
+            if rec.cost_change_parent.update_burden:
                 product.with_context({'user': self.user_id and self.user_id.id, 'cost_cron': True}).write(
                     {'burden_percent': rec.burden_change})
             rec.is_done = True
