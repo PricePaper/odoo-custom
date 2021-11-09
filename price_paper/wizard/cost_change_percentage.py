@@ -45,6 +45,7 @@ class CostChangePercentage(models.TransientModel):
                     'product_id': product.id,
                     'price_filter': 'percentage',
                     'price_change': self.percentage_change,
+                    'burden_change': product.burden_percent,
                     'cost_change_parent': cost_change_parent and cost_change_parent.id
                 }
                 if self.percentage_change == 0:

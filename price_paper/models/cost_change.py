@@ -32,6 +32,13 @@ class CostChangeParent(models.Model):
         else:
             self.update_vendor_pricelist = False
 
+    @api.onchange('update_burden')
+    def onchange_update_burden(self):
+        if self.update_burden:
+            for line in self.cost_change_lines:
+                if line.product_id:
+                    line.burden_change = line.product_id.burden_percent
+
     @api.depends('vendor_id', 'cost_change_lines.product_id')
     def compute_name(self):
         for rec in self:
@@ -122,6 +129,8 @@ class CostChange(models.Model):
 
 
 
+
+
     @api.depends('new_cost', 'old_cost')
     def compute_price_difference_percent(self):
         for rec in self:
@@ -142,17 +151,13 @@ class CostChange(models.Model):
             else:
                 rec.old_cost = 0.00
 
-    @api.onchange('update_burden', 'product_id')
-    def onchange_update_burden(self):
-        for rec in self:
-            if rec.update_burden and rec.product_id:
-                rec.burden_change = rec.product_id.burden_percent
-            else:
-                rec.burden_change = 0.00
-
     @api.onchange('product_id')
     def onchange_product_id(self):
         for rec in self:
+            if rec.product_id:
+                rec.burden_change = rec.product_id.burden_percent
+            else:
+                rec.burden_change = 0.00
             if rec.product_id and rec.cost_change_parent.vendor_id:
                 vendor_res = rec.product_id.seller_ids.filtered(lambda r: r.name == rec.cost_change_parent.vendor_id)
                 product_code = vendor_res.mapped('product_code')
