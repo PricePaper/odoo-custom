@@ -65,7 +65,7 @@
                         <page string="LINES">
                             <separator string="PRICE CHANGE LINES"/>
                             <field name="cost_change_lines" mode="tree" attrs="{'readonly':[('is_done', '=', True)]}">
-                                <tree editable="bottom">
+                                <tree editable="bottom" decoration-danger="old_cost == new_cost">
                                     <field name="vendor_product_code"
                                         attrs="{'column_invisible':[('parent.vendor_id', '=', False)], 'readonly':[('parent.is_done', '=', True)]}"/>
                                     <field name="product_id" required='1' />

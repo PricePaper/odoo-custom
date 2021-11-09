@@ -13,7 +13,48 @@ class SaleOrder(models.Model):
     # -------------------------------------------------------------------------------
     #          RPC METHOD FOR RELATED PARTNER FIX
     # -------------------------------------------------------------------------------
-    
+
+    @api.model
+    def restore_commission_for_rma_invoice(self):
+        rma = self.env['rma.ret.mer.auth'].search([('rma_date', '>', '10-28-2021'), ('state', 'not in', ('cancel', 'new'))])
+        print(len(rma))
+        iorders = rma.mapped('invoice_ids')
+        count = len(iorders)
+        flag = False
+        flag1 = False
+        sql = 'INSERT INTO account_invoice_res_partner_rel(account_invoice_id, res_partner_id) VALUES '
+        sql1 = 'INSERT INTO account_invoice_commission_rules_rel(account_invoice_id, commission_rules_id) VALUES '
+        for ip, inv in enumerate(iorders, 1):
+            if inv.sales_person_ids:
+                continue
+            order = inv.mapped('invoice_line_ids').mapped('sale_line_ids').mapped('order_id')
+            salereps = order.mapped('sales_person_ids').ids
+            rules = order.mapped('commission_rule_ids').ids
+            invoice = inv.id
+            for sp in salereps:
+                sql += str((invoice, sp)) + ','
+                flag = True
+            logging.info(f'salesrep  -> Invoice -> [%s] %d' %(invoice, ip))
+            for rule in rules:
+                sql1 += str((invoice, rule)) + ','
+                flag1 = True
+            logging.info(f'commission rule  -> Invoice -> [%s] %d' %(invoice, ip))
+
+        else:
+            if flag:
+                sql = sql[0:-1]
+                self.env.cr.execute(sql)
+            if flag1:
+                sql1 = sql1[0:-1]
+                self.env.cr.execute(sql1)
+        for ip, inv in enumerate(iorders, 1):
+            if inv.state in ('open', 'paid'):
+                commission = inv.calculate_commission()
+                if commission and inv.state == 'paid':
+                    commission.write({'is_paid': True})
+
+
+    @api.model
     def restore_sales_persons_from_partner(self):
         orders = self.env['sale.order'].search([('sales_person_ids', '=', False)])
         scount = len(orders)
