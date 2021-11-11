@@ -46,6 +46,7 @@ class StockPickingBatch(models.Model):
     state = fields.Selection([
         ('draft', 'Draft'),
         ('in_progress', 'Running'),
+        ('in_truck', 'In Progress'),
         ('done', 'Shipping Done'),
         ('no_payment', 'No Payment'),
         ('paid', 'Paid'),
@@ -169,6 +170,18 @@ class StockPickingBatch(models.Model):
     def print_master_pickticket(self):
         self.write({'late_order_print': False})
         return self.env.ref('batch_delivery.report_master_pick_ticket').report_action(self, config=False)
+
+    @api.multi
+    def set_in_truck(self):
+        for picking in self.picking_ids.filtered(lambda rec: rec.state not in ['cancel']):
+            if picking.sale_id and picking.sale_id.invoice_status == 'to invoice' or not picking.is_invoiced:
+                raise UserError(_('Please create invoices for delivery order %s, to continue.') % (picking.name))
+        self.write({'state': 'in_truck'})
+
+    @api.multi
+    def set_in_progress(self):
+        self.write({'state': 'in_progress'})
+
 
     @api.multi
     def print_master_late_order_pickticket(self):

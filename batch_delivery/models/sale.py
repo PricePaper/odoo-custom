@@ -3,6 +3,8 @@
 import json
 
 from odoo import api, fields, models, _
+from odoo.exceptions import UserError
+from odoo.tools.float_utils import float_compare
 
 
 class SaleOrder(models.Model):
@@ -26,6 +28,24 @@ class SaleOrderLine(models.Model):
     lot_id = fields.Many2one('stock.production.lot', 'Lot')
     info = fields.Char(compute='_get_price_lock_info_JSON')
     pre_delivered_qty = fields.Float(default=0.00, copy=False)
+
+    @api.multi
+    def write(self, vals):
+        for line in self:
+            if 'product_uom_qty' in vals:
+                precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
+                lines = self.filtered(
+                    lambda r: r.state == 'sale' and not r.is_expense and float_compare(r.product_uom_qty, vals['product_uom_qty'], precision_digits=precision) == 1)
+                for order_line in lines:
+                    moves = order_line.move_ids.filtered(lambda r: r.state not in ('cancel', 'done'))
+                    batches = moves.mapped('picking_id').mapped('batch_id')
+                    if batches and any(state == 'in_truck' for state in batches.mapped('state')):
+                        raise UserError(_('Batch is already in In Progress state can not decrease the qty.'))
+                    if moves and len(moves) == 1:
+                        moves._do_unreserve()
+                        moves.product_uom_qty = vals['product_uom_qty']
+        res = super(SaleOrderLine, self).write(vals)
+        return res
 
     @api.one
     @api.depends('product_id')

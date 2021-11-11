@@ -261,11 +261,11 @@ class StockPicking(models.Model):
                         line.sale_line_id.qty_delivered = line.reserved_availability
                 if pick.batch_id:
                     pick.sale_id.write({'delivery_date': pick.batch_id.date})
-    @api.multi
-    def action_transfer_complete(self):
-        for pick in self:
-            pick.action_confirm()
-            pick.action_assign()
+    # @api.multi
+    # def action_transfer_complete(self):
+    #     for pick in self:
+    #         pick.action_confirm()
+    #         pick.action_assign()
 
     @api.model
     def default_get(self, default_fields):
