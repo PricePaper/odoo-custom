@@ -152,23 +152,34 @@ class AccountInvoice(models.Model):
         }
 
     def create_discount_writeoff(self):
-
+        batch_discount = self._context.get('batch_discount', False)
         self.ensure_one()
         rev_line_account = self.partner_id and self.partner_id.property_account_receivable_id
+
         if not rev_line_account:
             rev_line_account = self.env['ir.property'].\
                 with_context(force_company=self.company_id.id).get('property_account_receivable_id', 'res.partner')
 
         wrtf_account = self.company_id.purchase_writeoff_account_id if self.type == 'in_invoice' else self.company_id.discount_account_id
         company_currency = self.company_id.currency_id
+
         if not wrtf_account:
             raise UserError(_('Please set a discount account in company.'))
-        discount_limit = self.amount_total * (5 / 100)
-        if self.discount_type == 'amount' and self.wrtoff_discount > discount_limit or self.wrtoff_discount > 5:
+        customer_discount_per = self.env['ir.config_parameter'].sudo().get_param('accounting_extension.customer_discount_limit', 5.00)
+        if isinstance(customer_discount_per, str):
+            customer_discount_per = float(customer_discount_per)
+
+        discount_limit = self.amount_total * (customer_discount_per / 100)
+        writeoff_discount = self.discount_from_batch if batch_discount else self.wrtoff_discount
+
+        if self.discount_type == 'amount' and writeoff_discount > discount_limit or self.discount_type == 'percentage' and writeoff_discount > customer_discount_per and not batch_discount:
             raise UserError(_('Invoices can not be discounted that much. Create a credit memo instead.'))
-        discount = self.wrtoff_discount if self.discount_type == 'amount' else self.amount_total * (self.wrtoff_discount / 100)
+
+        discount = writeoff_discount if self.discount_type == 'amount' or batch_discount else self.amount_total * (writeoff_discount / 100)
+
         if float_compare(discount, self.residual, precision_digits=2) > 0:
             raise UserError(_('Cannot add discount more than residual $ %.2f' % self.residual))
+
         amobj = self.env['account.move'].create({
             'company_id': self.company_id.id,
             'date': fields.Date.today(),

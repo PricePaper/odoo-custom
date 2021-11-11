@@ -57,7 +57,7 @@
                                        attrs="{'readonly':[('is_done', '=', True)]}"/>
                                 <field name="category_id" widget="many2many_tags"
                                        attrs="{'readonly':[('is_done', '=', True)]}"/>
-                                <button string="Apply % change" attrs="{'invisible':['|', ('is_done', '=', True), ('vendor_id', '=', False)]}"
+                                <button string="Load Products" attrs="{'invisible':['|', ('is_done', '=', True), ('vendor_id', '=', False)]}"
                                        type="object" name="add_percentage_lines" class="oe_edit_only oe_highlight"/>
                             </group>
                         </group>

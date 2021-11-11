@@ -10,7 +10,7 @@
                         <separator string="Cost Change"/>
                         <group>
                             <group>
-                                <field name="percentage_change" help='If left it as zero fixed price change will apply to the product lines'/>
+                                <field name="percentage_change" help='If left as zero, we will only load the products for this vendor and product class(as applicable). Price changes will need to be manually entered.'/>
                             </group>
                         </group>
                     </sheet>

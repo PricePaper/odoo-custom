@@ -226,12 +226,16 @@ class AccountRegisterPayment(models.TransientModel):
                     'is_full_reconcile': line.is_full_reconcile,
                     'amount_total': line.amount_total,
                 }))
-            res.update({'payment_reference': self.payment_reference, })
-            if discount_amount and self.writeoff_account_id:
-                res.update({'payment_difference_handling': 'reconcile',
-                            'writeoff_account_id': self.writeoff_account_id.id,
-                            'discount_amount': discount_amount,
-                            })
+                if line.discount:
+                    line.invoice_id.write({'discount_from_batch': line.discount})
+                    line.invoice_id.with_context(batch_discount=True).create_discount_writeoff()
+
+            res.update({
+                'payment_reference': self.payment_reference,
+                'payment_difference_handling': 'open',
+                'discount_amount': discount_amount
+            })
+
             if lines:
                 res.update({'payment_lines': lines})
         return result
@@ -315,6 +319,14 @@ class AccountPayment(models.Model):
     has_payment_lines = fields.Boolean('Has Payment Lines?', compute="_has_lines")
     payment_reference = fields.Char('Payment Reference')
 
+    def action_validate_invoice_payment(self):
+        res = super(AccountPayment, self).action_validate_invoice_payment()
+        for payment in self:
+            if len(payment.invoice_ids) == 1:
+                payment.invoice_ids.write({'discount_type': 'amount', 'wrtoff_discount': payment.discount_amount})
+                payment.invoice_ids.create_discount_writeoff()
+        return res
+
     @api.model
     def default_get(self, fields):
         """Override to add payment lines and calculate discount"""
@@ -351,8 +363,7 @@ class AccountPayment(models.Model):
 
         if flag:
             res.update({
-                'payment_difference_handling': 'reconcile',
-                'writeoff_account_id': wo_account and wo_account.id or 0,
+                'payment_difference_handling': 'open',
                 'discount_amount': discounted_total
             })
 
