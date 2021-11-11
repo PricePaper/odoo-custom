@@ -12,7 +12,7 @@
             <field name="inherit_id" ref="scs_rma.exchange_rma_ret_mer_auth_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//header/button[@name='create_receive_picking']" position="attributes">
-                    <attribute name="groups">account.group_account_user,purchase.group_purchase_user</attribute>
+                    <attribute name="groups">account.group_account_invoice,purchase.group_purchase_user</attribute>
                 </xpath>
                 <xpath expr="//field[@name='picking_rma_id']" position="after">
                     <field name="shipping_address_id" attrs="{'invisible': [('rma_type', '!=', 'customer')]}"/>

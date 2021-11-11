@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from lxml import etree
+
 from odoo import fields, models, api, _
 from odoo.exceptions import ValidationError, UserError
+from odoo.osv.orm import setup_modifiers
 
 
 class ResPartner(models.Model):
@@ -100,6 +103,20 @@ class ResPartner(models.Model):
                 'property_delivery_carrier_id': company.partner_delivery_method_id and company.partner_delivery_method_id.id or False,
                 'country_id': company.partner_country_id and company.partner_country_id.id or False,
                 'state_id': company.partner_state_id and company.partner_state_id.id or False})
+        return res
+
+    @api.model
+    def fields_view_get(self, view_id=None, view_type=False, toolbar=False, submenu=False):
+        res = super(ResPartner, self).fields_view_get(view_id=view_id, view_type=view_type, toolbar=toolbar, submenu=submenu)
+        if self.env.user._is_admin() and self.user_has_groups('base.group_no_one'):
+            doc = etree.XML(res['arch'])
+            if view_type == 'form':
+                nodes = doc.xpath("//notebook/page[@name='sales_purchases']/group/group/field[@name='customer_code']")
+                for node in nodes:
+                    node.set('readonly', '0')
+                    setup_modifiers(node, res['fields']['customer_code'])
+                    res['arch'] = etree.tostring(doc)
+                return res
         return res
 
     @api.model

@@ -76,12 +76,10 @@ class CashCollectedLines(models.Model):
                     'communication': line.communication,
                     'batch_id': line.batch_id.id,
                     'discount_amount': line.discount_amount,
-                    'payment_difference_handling': 'reconcile' if need_writeoff else False,
-                    'writeoff_label': line.invoice_id.payment_term_id.name if need_writeoff else False,
-                    'writeoff_account_id': self.env.user.company_id.discount_account_id.id if need_writeoff else False
                 })
-                if line.invoice_id:
-                    line.invoice_id.write({'discount_from_batch': line.discount})
+                if line.invoice_id and line.discount_amount:
+                    line.invoice_id.write({'discount_from_batch': line.discount_amount})
+                    line.invoice_id.with_context(batch_discount=True).create_discount_writeoff()
             else:
                 batch_payment_info.setdefault(line.journal_id, {}). \
                     setdefault(line.payment_method_id, []). \
@@ -133,12 +131,10 @@ class CashCollectedLines(models.Model):
                     'communication': line.communication,
                     'common_batch_id': line.common_batch_id.id,
                     'discount_amount': line.discount_amount,
-                    'payment_difference_handling': 'reconcile' if need_writeoff else False,
-                    'writeoff_label': line.invoice_id.payment_term_id.name if need_writeoff else False,
-                    'writeoff_account_id': self.env.user.company_id.discount_account_id.id if need_writeoff else False
                 })
-                if line.invoice_id:
-                    line.invoice_id.write({'discount_from_batch': line.discount})
+                if line.invoice_id and line.discount_amount:
+                    line.invoice_id.write({'discount_from_batch': line.discount_amount})
+                    line.invoice_id.with_context(batch_discount=True).create_discount_writeoff()
             else:
                 batch_payment_info.setdefault(line.journal_id, {}). \
                     setdefault(line.payment_method_id, []). \
