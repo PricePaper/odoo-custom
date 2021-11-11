@@ -23,6 +23,7 @@
                 </button>
 
                 <button name="confirm_picking" position="after">
+
                     <button name="create_batch_invoice" string="Create Invoice"
                             type="object" class="oe_highlight"
                             attrs="{'invisible': ['|', ('state', 'not in', ['in_progress']), ('to_invoice', '=', False)]}"/>
@@ -34,10 +35,19 @@
                     <button name="print_driver_spreadsheet" string="Print Drivers Document" type="object"
                             class="oe_highlight"
                             attrs="{'invisible': ['|', ('invoice_ids', '=', []), ('state', 'in', ('draft', 'cancel'))]}"/>
+                    <button name="set_in_truck" string="Move to In Progress"
+                            type="object" class="oe_highlight"
+                            attrs="{'invisible': [('state', 'not in', ['in_progress'])]}"/>
+                    <button name="set_in_progress" string="Move to Running"
+                            type="object"
+                            attrs="{'invisible': [('state', 'not in', ['in_truck'])]}"/>
                 </button>
 
                 <button name="print_picking" position="attributes">
                     <attribute name="string">Print Pick Tickets</attribute>
+                </button>
+                <button name="done" position="attributes">
+                    <attribute name="states">in_truck</attribute>
                 </button>
 
                 <button name="cancel_picking" position="attributes">
@@ -65,7 +75,7 @@
                             <field name="route_id"/>
                             <field name="truck_driver_id"
                                    domain="[('is_driver', '=', True), ('is_driver_available', '=', True)]"
-                                   attrs="{'readonly':[('state', 'in', ['in_progress', 'done', 'cancel'])]}"
+                                   attrs="{'readonly':[('state', 'in', ['in_progress', 'done', 'cancel', 'in_truck'])]}"
                                    context="{'default_is_driver': True}"/>
                         </group>
                         <group>
@@ -108,7 +118,7 @@
                 </xpath>
 
                 <xpath expr="//field[@name='picking_ids']" position="attributes">
-                    <attribute name="attrs">{'readonly': [('state', '=', 'done')]}</attribute>
+                    <attribute name="attrs">{'readonly': [('state', 'in', ('done', 'in_truck'))]}</attribute>
                 </xpath>
 
                 <xpath expr="//field[@name='picking_ids']/tree/button[@name='action_assign']" position="attributes">
@@ -160,7 +170,7 @@
                 </xpath>
 
                 <xpath expr="//field[@name='picking_ids']/tree/field[@name='scheduled_date']" position="after">
-                    <field name="is_late_order" attrs="{'readonly':[('parent.state','=', 'done')]}"/>
+                    <field name="is_late_order" attrs="{'readonly':[('parent.state','in', ('in_truck', 'done'))]}"/>
                     <field name="is_invoiced" invisible="1"/>
                     <button class="fa fa-file-text mr8" name="action_print_invoice" type="object" aria-label="Invoice"/>
                     <button class="fa fa-truck" name="action_print_pick_ticket" type="object" aria-label="Pick Ticket"/>
@@ -170,7 +180,7 @@
 
                  <xpath expr="//field[@name='picking_ids']/tree/button[@name='action_cancel']" position="after">
                     <button class="fa fa-times" name="action_remove" type="object" aria-label="Remove row"
-                            attrs="{'invisible': [('parent.state', 'in', ('done', 'no_payment', 'paid'))]}"
+                            attrs="{'invisible': [('parent.state', 'in', ('in_truck', 'done', 'no_payment', 'paid'))]}"
                             confirm="Are you sure want to remove this DO from batch"/>
                 </xpath>
 
@@ -238,7 +248,7 @@
             <field name="arch" type="xml">
 
                 <filter name="in_progress" position="attributes">
-                    <attribute name="domain">[('state', 'in', ['draft', 'in_progress'])]</attribute>
+                    <attribute name="domain">[('state', 'in', ['draft', 'in_progress', 'in_truck'])]</attribute>
                 </filter>
                 <filter name="in_progress" position="after">
                       <filter name="not_paid" string="Draft Payment" domain="[('state', '=', 'done')]" help="Batch Payment in Draft state"/>
@@ -277,7 +287,7 @@
                              <button class="oe_stat_button"
                                 name="view_invoices"
                                 icon="fa-pencil-square-o"
-                                type="object" attrs="{'invisible': [('state', 'in', ['draft', 'in_progress', 'no_payment'])]}"
+                                type="object" attrs="{'invisible': [('state', 'in', ['draft', 'in_progress', 'no_payment', 'in_truck'])]}"
                                 string="Customer Invoices"/>
 
                             <button name="view_batch_payments"
