@@ -106,6 +106,8 @@
             <field name="inherit_id" ref="stock.view_picking_internal_search"/>
             <field name="arch" type="xml">
                 <filter name="late" position="after">
+                    <filter string="In Transit" name="in_transit"
+                        domain="[('state', '=', 'in_transit')]"/>
                     <filter string="Truck Deliveries" name="truck_deliveries"
                         domain="[('carrier_id.show_in_route', '=', True)]"/>
                     <filter string="Earliest Delivery Today" name="release_date"

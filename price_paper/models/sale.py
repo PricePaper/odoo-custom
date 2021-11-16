@@ -162,6 +162,18 @@ class SaleOrder(models.Model):
 
             if sale_order.storage_contract:
                 sale_order.order_line.mapped('purchase_line_ids.order_id').button_cancel()
+            else:
+                for so_line in sale_order.order_line:
+                    for po_line in so_line.mapped('move_ids').filtered(lambda r: r.state != 'cancel').mapped('created_purchase_line_id'):
+                        if po_line.order_id.state in ['purchase', 'done', 'received']:
+                            raise UserError(_('You cannot cancel this order.'))
+                        else:
+                            if len(po_line.order_id.origin.split(',')) > 1 or len(po_line.order_id.origin.split(', ')) > 1:
+                                po_line.write({'product_qty': po_line.product_qty - so_line.product_uom_qty})
+                                po_line.order_id.message_post(body=_("sale order %s has been cancelled by the user %s." % (sale_order.name, self.env.user.name)), subtype_id=self.env.ref('mail.mt_note').id)
+                            else:
+                                po_line.order_id.button_cancel()
+
         sc_having_lines = sale_order.order_line.filtered('storage_contract_line_id')
         if sc_having_lines:
             sc_having_lines.write({'product_uom_qty': 0})

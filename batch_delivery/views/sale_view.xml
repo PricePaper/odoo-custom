@@ -9,6 +9,11 @@
             <field name="inherit_id" ref="sale.view_order_form"/>
             <field name="arch" type="xml">
 
+                <xpath expr="//group[hasclass('oe_subtotal_footer')]" position="before">
+                  <group attrs="{'invisible': [('cancel_reason', '=', False)]}">
+                    <field name="cancel_reason" readonly='1' force_save="1"/>
+                  </group>
+                </xpath>
                 <xpath expr="//field[@name='payment_term_id']" position="after">
                     <field name="have_prive_lock" invisible="1"/>
                 </xpath>

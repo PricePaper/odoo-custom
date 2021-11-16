@@ -492,11 +492,11 @@ action = records.env['sale.order'].confirm_multiple_orders(records)
                         <field name="invoice_status" invisible="1"/>
                         <button name="%(sale.action_view_sale_advance_payment_inv)d" string="Create Invoice"
                             type="action" class="btn-primary"
-                            attrs="{'invisible': ['|', '|', ('active', '=', False), ('invoice_status', '!=', 'to invoice'), ('state', '=', 'done')]}"/>
+                            attrs="{'invisible': ['|', '|', ('active', '=', False), ('invoice_status', 'not in', ('to invoice', 'upselling')), ('state', '=', 'done')]}"/>
                         <button name="%(sale.action_view_sale_advance_payment_inv)d" string="Create Invoice"
                                 type="action" context="{'default_advance_payment_method': 'percentage'}"
                                 attrs="{'invisible': ['|', '|', ('active', '=', False), ('invoice_status', '!=', 'no'), ('state', 'not in', ['sale', 'waiting', 'ordered'])]}"/>
-                        <button name="action_storage_contract_confirm" type="object" string="Confirm" class="oe_highlight" states="draft" attrs="{'invisible': [('active', '=', False)]}"/>
+                        <button name="action_storage_contract_confirm" type="object" string="Confirm" class="oe_highlight" attrs="{'invisible': ['|', ('state', '!=', 'draft'), ('active', '=', False)]}"/>
                         <button name="action_create_storage_do" type="object" string="Create PO" class="oe_highlight" attrs="{'invisible': ['|', '|', ('active', '=', False), ('state', '!=', 'sale'), ('sc_po_done', '=', True)]}" groups="account.group_account_manager, purchase.group_purchase_manager"/>
                         <button name="action_release" groups="account.group_account_manager" type="object" string="Release" class="oe_highlight" attrs="{'invisible': ['|', '|', ('active', '=', False), ('invoice_status', '!=', 'invoiced'), ('state', '!=', 'received')]}"/>
                         <button name="action_restore" groups="account.group_account_manager" type="object" string="UnRelease" class="oe_highlight" attrs="{'invisible': ['|', ('active', '=', False), ('state', '!=', 'released')]}"/>
