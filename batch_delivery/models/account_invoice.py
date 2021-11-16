@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import fields, models, api, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from pprint import pprint
 import json
 
@@ -22,6 +22,19 @@ class AccountInvoice(models.Model):
         for rec in self:
             info = json.loads(rec.outstanding_credits_debits_widget)
             rec.out_standing_credit = sum(list(map(lambda r: r['amount'], info['content']))) if info else 0
+
+    @api.multi
+    def action_invoice_cancel(self):
+        if all([inv.type in ('in_invoice', 'out_refund', 'in_refund') for inv in self]) and all([inv.state == 'draft' for inv in self]):
+            return super(AccountInvoice, self).action_invoice_cancel()
+        for invoice in self:
+            if invoice.mapped('picking_ids').filtered(lambda r:r.state in ('in_transit', 'done')):
+                raise ValidationError(_('Cannot perform this action, DO is in transit or done state'))
+        if not self.env.user.has_group('account.group_account_manager') or not self.env.user.has_group('sales_team.group_sale_manager'):
+            raise ValidationError(_('You dont have permissions to cancel an open invoice. Only Accounting adviser have the permission.'))
+
+        return super(AccountInvoice, self).action_invoice_cancel()
+
 
     @api.multi
     def _search_has_outstanding(self, operator, value):

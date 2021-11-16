@@ -88,14 +88,18 @@ class StockPicking(models.Model):
         # elif self.move_lines.mapped('purchase_line_id').mapped('order_id'):
         #     release_date = self.move_lines.mapped('purchase_line_id').mapped('order_id').mapped('release_date')
         if self.move_type == 'direct':
-            if release_date and any(release_date):
+            if self.rma_id:
+                self.scheduled_date = fields.Datetime.now()
+            elif release_date and any(release_date):
                 self.scheduled_date = datetime.combine(min(release_date), datetime.min.time())
             elif self.move_lines.mapped('date_expected'):
                 self.scheduled_date = min(self.move_lines.mapped('date_expected'))
             else:
                 self.scheduled_date = fields.Datetime.now()
         else:
-            if release_date and any(release_date):
+            if self.rma_id:
+                self.scheduled_date = fields.Datetime.now()
+            elif release_date and any(release_date):
                 self.scheduled_date = datetime.combine(min(release_date), datetime.min.time())
             elif self.move_lines.mapped('date_expected'):
                 self.scheduled_date = min(self.move_lines.mapped('date_expected'))

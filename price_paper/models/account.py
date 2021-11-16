@@ -111,13 +111,6 @@ class AccountInvoice(models.Model):
                 main |= sale_order
         if main:
             main.write({'state': 'done'})
-
-        if all([inv.state == 'draft' for inv in self]):
-            return super(AccountInvoice, self).action_invoice_cancel()
-
-        if not self.env.user.has_group('account.group_account_manager'):
-            raise ValidationError(_('You dont have permissions to cancel an invoice.'))
-
         return super(AccountInvoice, self).action_invoice_cancel()
 
     @api.depends('invoice_line_ids.profit_margin')

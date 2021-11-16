@@ -81,7 +81,7 @@ class StockRule(models.Model):
     def _run_buy(self, product_id, product_qty, product_uom, location_id, name, origin, values):
         procurement_group = values.get('group_id', False)
         order_point = values.get('orderpoint_id', False)
-        if order_point or procurement_group and (procurement_group.sale_id and procurement_group.sale_id.storage_contract or not procurement_group.sale_id):
+        if procurement_group and (procurement_group.sale_id and procurement_group.sale_id.storage_contract or not procurement_group.sale_id):
             return super(StockRule, self)._run_buy(product_id, product_qty, product_uom, location_id, name, origin, values)
 
         cache = {}
@@ -102,7 +102,8 @@ class StockRule(models.Model):
             po = self.env['purchase.order'].sudo().search([dom for dom in domain])
             po = po[0] if po else False
             cache[domain] = po
-
+        if order_point and po and not po.sale_order_count > 0:
+            return super(StockRule, self)._run_buy(product_id, product_qty, product_uom, location_id, name, origin, values)
         if not po or po and origin not in po.origin.split(', '):
             vals = self._prepare_purchase_order(product_id, product_qty, product_uom, origin, values, partner)
             company_id = values.get('company_id') and values['company_id'].id or self.env.user.company_id.id

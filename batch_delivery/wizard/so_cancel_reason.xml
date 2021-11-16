@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_so_cancel_reason_wiz" model="ir.ui.view">
+            <field name="name">so.cancel.reason</field>
+            <field name="model">so.cancel.reason</field>
+            <field name="arch" type="xml">
+                <form string="SO cancel reason">
+                    <sheet>
+                        <separator string="SO cancel reason"/>
+                        <group>
+                            <group>
+                                <field name="reason" help='Reason for cancelling the order'/>
+                            </group>
+                        </group>
+                    </sheet>
+                    <footer>
+                        <button string="Submit" type="object" name="cancel_so"/>
+                        or
+                        <button string="Cancel" class="oe_link" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>
