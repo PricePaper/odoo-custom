@@ -111,19 +111,7 @@ class AccountInvoice(models.Model):
         for line in lines:
             profit = self.gross_profit
             commission = line.commission
-            # payment_date_list = [rec.payment_date for rec in self.payment_ids]
-            # payment_date = max(payment_date_list) if payment_date_list else False
             payment_date = self.paid_date
-
-            if self.payment_term_id.due_days:
-                days = self.payment_term_id.due_days
-                if payment_date and payment_date > self.date_invoice + relativedelta(days=days):
-                    profit += self.amount_total * (self.payment_term_id.discount_per / 100)
-            if self.payment_ids and self.payment_ids[0].payment_method_id.code == 'credit_card' and self.partner_id.payment_method != 'credit_card':
-                profit -= self.amount_total * 0.03
-            if self.payment_ids and self.payment_ids[
-                0].payment_method_id.code != 'credit_card' and self.partner_id.payment_method == 'credit_card':
-                profit += self.amount_total * 0.03
 
             rule_id = self.commission_rule_ids.filtered(
                 lambda r: r.sales_person_id == line.sale_person_id)

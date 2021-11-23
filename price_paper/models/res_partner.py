@@ -159,7 +159,7 @@ class ResPartner(models.Model):
 
     @api.constrains('customer_code')
     def check_partner_code(self):
-        if self.search([('customer_code', '=ilike', self.customer_code), ('id', '!=', self.id)]):
+        if self.sudo().search(['|', ('active', '=', True), ('active', '=', False), ('customer_code', '=ilike', self.customer_code), ('id', '!=', self.id)]):
             raise ValidationError(_('Partner with same Partner code already exists.'))
 
     @api.model
@@ -174,7 +174,7 @@ class ResPartner(models.Model):
         if vals.get('is_company', False):
             if not vals.get('customer_code', False):
                 prefix = vals.get('name').replace(" ", "")[0:3].upper()
-                customer_codes = self.env['res.partner'].search([('customer_code', 'ilike', prefix)]).mapped('customer_code')
+                customer_codes = self.env['res.partner'].sudo().search(['|', ('active', '=', True), ('active', '=', False), ('customer_code', 'ilike', prefix)]).mapped('customer_code')
                 partner_codes = [code for code in customer_codes if code[0:3] == prefix and len(code) < 8]
                 count = 1
                 while True:
@@ -205,6 +205,8 @@ class ResPartner(models.Model):
                 existing_defaults.write({'default_shipping':False})
                 result.default_shipping = True
         return result
+
+
 
     @api.multi
     def write(self, vals):
