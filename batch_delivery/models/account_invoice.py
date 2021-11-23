@@ -17,6 +17,27 @@ class AccountInvoice(models.Model):
     out_standing_credit = fields.Float(compute='_compute_out_standing_credit', string="Out Standing")
     discount_type = fields.Selection([('percentage', 'Discount(%)'), ('amount', 'Discount($)')], default='percentage')
 
+    @api.depends('invoice_line_ids.profit_margin')
+    def calculate_gross_profit(self):
+        """
+        Compute the gross profit in invoice.
+        """
+        for invoice in self:
+            if invoice.state == 'paid':
+
+                gross_profit = 0
+                for line in invoice.invoice_line_ids:
+                    gross_profit += line.profit_margin
+                if invoice.payment_ids and invoice.payment_ids[0].payment_method_id.code == 'credit_card' and invoice.partner_id.payment_method != 'credit_card':
+                    gross_profit -= invoice.amount_total * 0.03
+                if invoice.payment_ids and invoice.payment_ids[
+                    0].payment_method_id.code != 'credit_card' and invoice.partner_id.payment_method == 'credit_card':
+                    gross_profit += invoice.amount_total * 0.03
+                if invoice.wrtoff_discount:
+                    gross_profit -= invoice.wrtoff_discount
+                invoice.update({'gross_profit': round(gross_profit, 2)})
+            else:
+                return super(AccountInvoice, self).calculate_gross_profit()
 
     def _compute_out_standing_credit(self):
         for rec in self:

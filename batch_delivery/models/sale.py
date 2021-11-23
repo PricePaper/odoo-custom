@@ -26,7 +26,7 @@ class SaleOrder(models.Model):
                 if order.invoice_ids and order.invoice_ids.filtered(lambda r:r.state in ('open', 'paid')):
                     raise ValidationError(_('Cannot perform this action, invoice not in draft state'))
                 if order.picking_ids and order.picking_ids.filtered(lambda r:r.state in ('in_transit', 'done')):
-                    if not self.env.user.has_group('account.group_account_manager') or not self.env.user.has_group('sales_team.group_sale_manager'):
+                    if not self.env.user.has_group('account.group_account_manager') and not self.env.user.has_group('sales_team.group_sale_manager'):
                         raise ValidationError(_('You dont have permissions to cancel a SO with DO in transit. Only Sales Manager and Accounting adviser have the permission.'))
                     view_id = self.env.ref('batch_delivery.view_so_cancel_reason_wiz').id
                     return {

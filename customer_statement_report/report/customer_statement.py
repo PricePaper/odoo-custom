@@ -56,8 +56,8 @@ class CustomerStatementPdfReport(models.AbstractModel):
                             'date': line['name'],
                             'due_date': line['columns'][3]['name'],
                             'amount': line['columns'][6]['name'] or '-' + line['columns'][8]['name'],
-                            'amount_due': '$ ' + '{0: 0.2f}'.format(amount_due or 0.0),
-                            'running_balance': '$ ' + '{0: 0.2f}'.format(amount)
+                            'amount_due': ('$ ', '-$ ')[amount_due < 0] + str(float_round(abs(amount_due), 2) or 0.00),
+                            'running_balance': ('$ ', '-$ ')[amount < 0] + str(float_round(abs(amount), 2) or 0.00),
                         }
                     )
                 elif line['caret_options'] == 'account.payment':
@@ -74,7 +74,7 @@ class CustomerStatementPdfReport(models.AbstractModel):
                         }
                     )
         else:
-            data['cumulative'] = '$ ' + str(float_round(amount, precision_digits=2))
+            data['cumulative'] = ('$ ', '-$ ')[amount < 0] + str(float_round(abs(amount), 2) or 0.0)
         return data
 
     @api.model

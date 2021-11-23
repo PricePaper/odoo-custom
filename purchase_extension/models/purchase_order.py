@@ -298,15 +298,15 @@ class PurchaseOrder(models.Model):
                  ('id', 'not in', purchase_order.ids)])
             orders.button_cancel()
             tr = ''
-            for po in self:
-                for line in po.order_line:
-                    product = line.product_id
-                    if line.product_id.standard_price != line.price_unit:
-                        tr += '''<tr>
-                            <td><b>{}</b></td>
-                            <td><b>${cost:.2f}</b></td>
-                            <td style="color:red"><b>${price:.2f}</b></td>
-                        </tr>'''.format(product.display_name, cost=product.standard_price, price=line.price_unit)
+
+            for line in purchase_order.order_line:
+                product = line.product_id
+                if round(line.product_id.standard_price, 2) != line.price_unit:
+                    tr += '''<tr>
+                        <td><b>{}</b></td>
+                        <td><b>${cost:.2f}</b></td>
+                        <td style="color:red"><b>${price:.2f}</b></td>
+                    </tr>'''.format(product.display_name, cost=product.standard_price, price=line.price_unit)
             if tr:
                 note = '''
                 <table class="table table-bordered">
