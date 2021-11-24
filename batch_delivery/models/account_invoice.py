@@ -17,27 +17,31 @@ class AccountInvoice(models.Model):
     out_standing_credit = fields.Float(compute='_compute_out_standing_credit', string="Out Standing")
     discount_type = fields.Selection([('percentage', 'Discount(%)'), ('amount', 'Discount($)')], default='percentage')
 
-    @api.depends('invoice_line_ids.profit_margin')
+    @api.depends('invoice_line_ids.profit_margin', 'wrtoff_discount', 'discount_from_batch')
     def calculate_gross_profit(self):
         """
         Compute the gross profit in invoice.
         """
         for invoice in self:
             if invoice.state == 'paid':
-
                 gross_profit = 0
                 for line in invoice.invoice_line_ids:
                     gross_profit += line.profit_margin
-                if invoice.payment_ids and invoice.payment_ids[0].payment_method_id.code == 'credit_card' and invoice.partner_id.payment_method != 'credit_card':
-                    gross_profit -= invoice.amount_total * 0.03
-                if invoice.payment_ids and invoice.payment_ids[
-                    0].payment_method_id.code != 'credit_card' and invoice.partner_id.payment_method == 'credit_card':
-                    gross_profit += invoice.amount_total * 0.03
+                if invoice.payment_ids and invoice.payment_ids.filtered(lambda r:r.payment_method_id.code == 'credit_card'):
+                    card_amount = 0
+                    for payment in invoice.payment_ids.filtered(lambda r:r.payment_method_id.code == 'credit_card'):
+                        card_amount += payment.amount
+                    gross_profit -= card_amount * 0.03
                 if invoice.wrtoff_discount:
-                    gross_profit -= invoice.wrtoff_discount
+                    if invoice.discount_type == 'percentage':
+                        gross_profit -= invoice.amount_total * invoice.wrtoff_discount / 100
+                    else:
+                        gross_profit -= invoice.wrtoff_discount
+                if invoice.discount_from_batch:
+                    gross_profit -= invoice.discount_from_batch
                 invoice.update({'gross_profit': round(gross_profit, 2)})
             else:
-                return super(AccountInvoice, self).calculate_gross_profit()
+                super(AccountInvoice, self).calculate_gross_profit()
 
     def _compute_out_standing_credit(self):
         for rec in self:
