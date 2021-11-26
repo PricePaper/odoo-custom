@@ -10,18 +10,38 @@ class AccountMoveLine(models.Model):
 
     @api.multi
     def remove_move_reconcile(self):
+        discount_lines = self.env['account.move.line']
         for account_move_line in self:
-            for invoice in account_move_line.payment_id.invoice_ids:
-                disocunt_lines = invoice.payment_move_line_ids.filtered(lambda r: r.name and r.name.strip() == 'Discount')
-                disocunt_lines.remove_active_discount()
-        return super(AccountMoveLine, self).remove_move_reconcile()
+            invoice_id = self._context.get('invoice_id')
+            payment = account_move_line.payment_id
+            if payment.discount_journal_id:
+                discount_lines |= payment.discount_journal_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type in ('receivable', 'payable'))
+            else:
+                payment_line = account_move_line.payment_id.payment_lines.filtered(lambda r: r.invoice_id.id == invoice_id)
+                discount_lines |= payment_line.discount_journal_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type in ('receivable', 'payable'))
+        res = super(AccountMoveLine, (self | discount_lines)).remove_move_reconcile()
+        discount_lines.mapped('move_id').button_cancel()
+        discount_lines.mapped('move_id').unlink()
+        return res
 
     @api.multi
-    def remove_active_discount(self):
-        for line in self:
-            line.remove_move_reconcile()
-            line.move_id.button_cancel()
-            line.move_id.unlink()
+    def remove_active_discount(self, invoice_id=False):
+        for account_move_line in self:
+            discount_lines = self.env['account.move.line']
+            if account_move_line.payment_id and account_move_line.payment_id.discount_journal_id:
+                discount_journal = account_move_line.payment_id.discount_journal_id
+                discount_lines |= discount_journal.line_ids.filtered(lambda r: r.account_id.user_type_id.type in ('receivable', 'payable'))
+            elif account_move_line.payment_id and self._context.get('rec'):
+                invoice_id = self._context.get('rec')
+                payment_line = account_move_line.payment_id.payment_lines.filtered(lambda r: r.invoice_id.id == invoice_id)
+                discount_lines |= payment_line.discount_journal_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type in ('receivable', 'payable'))
+            elif invoice_id:
+                payment_line = account_move_line.payment_id.payment_lines.filtered(lambda r: r.invoice_id.id == invoice_id)
+                discount_lines |= payment_line.discount_journal_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type in ('receivable', 'payable'))
+            discount_lines |= account_move_line
+            discount_lines.remove_move_reconcile()
+            discount_lines.mapped('move_id').button_cancel()
+            discount_lines.mapped('move_id').unlink()
         return True
 
 
