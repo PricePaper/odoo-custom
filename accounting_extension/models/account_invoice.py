@@ -31,10 +31,6 @@ class AccountMoveLine(models.Model):
             if account_move_line.payment_id and account_move_line.payment_id.discount_journal_id:
                 discount_journal = account_move_line.payment_id.discount_journal_id
                 discount_lines |= discount_journal.line_ids.filtered(lambda r: r.account_id.user_type_id.type in ('receivable', 'payable'))
-            elif account_move_line.payment_id and self._context.get('rec'):
-                invoice_id = self._context.get('rec')
-                payment_line = account_move_line.payment_id.payment_lines.filtered(lambda r: r.invoice_id.id == invoice_id)
-                discount_lines |= payment_line.discount_journal_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type in ('receivable', 'payable'))
             elif invoice_id:
                 payment_line = account_move_line.payment_id.payment_lines.filtered(lambda r: r.invoice_id.id == invoice_id)
                 discount_lines |= payment_line.discount_journal_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type in ('receivable', 'payable'))
