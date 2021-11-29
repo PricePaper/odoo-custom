@@ -250,8 +250,8 @@ class AccountInvoice(models.Model):
                 'partner_id': self.partner_id.id
              })]
         })
-        amobj.post()
         if not self._context.get('force_stop'):
+            amobj.post()
             rcv_lines = self.move_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type in ('receivable', 'payable'))
             rcv_wrtf = amobj.line_ids.filtered(lambda r: r.account_id.user_type_id.type in ('receivable', 'payable'))
             (rcv_lines + rcv_wrtf).reconcile()
