@@ -17,11 +17,7 @@ class AccountInvoice(models.Model):
             ('type', '=', 'out_refund'),
             ('date_invoice', '<', domain_date.strftime('%Y-%m-%d')),
         ]).sudo()
-
-        partial_paid_credit_notes = credit_notes.filtered(lambda r: r.amount_total != r.residual)
-        to_cancel_credit_notes = credit_notes.filtered(lambda r: r.amount_total == r.residual)
-        to_cancel_credit_notes.action_invoice_cancel()
-        for invoice in partial_paid_credit_notes:
+        for invoice in credit_notes:
             invoice.create_purge_writeoff()
         return True
 

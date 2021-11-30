@@ -132,7 +132,9 @@ class SaleOrder(models.Model):
     def onchange_partner_id(self):
         res = super(SaleOrder, self).onchange_partner_id()
         if self.partner_id and self.partner_id.sales_person_ids:
-            self.sales_person_ids = self.partner_id.sales_person_ids
+            self.sales_person_ids = self.partner_id.sales_person_ids.filtered(lambda r: r.active)
+        else:
+            self.sales_person_ids = False
         return res
 
     @api.multi

@@ -63,6 +63,10 @@ class CashCollectedLines(models.Model):
             if need_writeoff and not self.env.user.company_id.discount_account_id:
                 raise UserError(_('Please set a discount account in company.'))
             if line.invoice_id:
+                am_rec = self.env['account.move']
+                if line.invoice_id and line.discount_amount:
+                    line.invoice_id.write({'discount_from_batch': line.discount_amount})
+                    am_rec = line.invoice_id.with_context(batch_discount=True).create_discount_writeoff()
                 batch_payment_info.setdefault(line.journal_id, {}). \
                     setdefault(line.payment_method_id, []). \
                     append({
@@ -76,10 +80,8 @@ class CashCollectedLines(models.Model):
                     'communication': line.communication,
                     'batch_id': line.batch_id.id,
                     'discount_amount': line.discount_amount,
+                    'discount_journal_id': am_rec.id if am_rec else False
                 })
-                if line.invoice_id and line.discount_amount:
-                    line.invoice_id.write({'discount_from_batch': line.discount_amount})
-                    line.invoice_id.with_context(batch_discount=True).create_discount_writeoff()
             else:
                 batch_payment_info.setdefault(line.journal_id, {}). \
                     setdefault(line.payment_method_id, []). \
@@ -118,6 +120,10 @@ class CashCollectedLines(models.Model):
             if need_writeoff and not self.env.user.company_id.discount_account_id:
                 raise UserError(_('Please set a discount account in company.'))
             if line.invoice_id:
+                am_rec = self.env['account.move']
+                if line.invoice_id and line.discount_amount:
+                    line.invoice_id.write({'discount_from_batch': line.discount_amount})
+                    am_rec = line.invoice_id.with_context(batch_discount=True).create_discount_writeoff()
                 batch_payment_info.setdefault(line.journal_id, {}). \
                     setdefault(line.payment_method_id, []). \
                     append({
@@ -131,10 +137,9 @@ class CashCollectedLines(models.Model):
                     'communication': line.communication,
                     'common_batch_id': line.common_batch_id.id,
                     'discount_amount': line.discount_amount,
+                    'discount_journal_id': am_rec.id if am_rec else False
                 })
-                if line.invoice_id and line.discount_amount:
-                    line.invoice_id.write({'discount_from_batch': line.discount_amount})
-                    line.invoice_id.with_context(batch_discount=True).create_discount_writeoff()
+
             else:
                 batch_payment_info.setdefault(line.journal_id, {}). \
                     setdefault(line.payment_method_id, []). \

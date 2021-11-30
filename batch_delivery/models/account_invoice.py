@@ -39,7 +39,11 @@ class AccountInvoice(models.Model):
                         gross_profit -= invoice.wrtoff_discount
                 if invoice.discount_from_batch:
                     gross_profit -= invoice.discount_from_batch
+                if invoice.type == 'out_refund':
+                    if gross_profit < 0:
+                        gross_profit = 0
                 invoice.update({'gross_profit': round(gross_profit, 2)})
+
             else:
                 super(AccountInvoice, self).calculate_gross_profit()
 
@@ -50,7 +54,9 @@ class AccountInvoice(models.Model):
 
     @api.multi
     def action_invoice_cancel(self):
-        if all([inv.type in ('in_invoice', 'out_refund', 'in_refund') for inv in self]) and all([inv.state == 'draft' for inv in self]):
+        if self._context.get('from_invoice_cancel_rpc', False):
+            return super(AccountInvoice, self).action_invoice_cancel()
+        if all([inv.type in ('in_invoice', 'in_refund') for inv in self]) and all([inv.state == 'draft' for inv in self]):
             return super(AccountInvoice, self).action_invoice_cancel()
         for invoice in self:
             if invoice.mapped('picking_ids').filtered(lambda r:r.state in ('in_transit', 'done')):
@@ -193,10 +199,13 @@ class AccountInvoice(models.Model):
         batch_discount = self._context.get('batch_discount', False)
         self.ensure_one()
         rev_line_account = self.partner_id and self.partner_id.property_account_receivable_id
-
+        pay_line_account = self.partner_id and self.partner_id.property_account_payable_id
         if not rev_line_account:
             rev_line_account = self.env['ir.property'].\
                 with_context(force_company=self.company_id.id).get('property_account_receivable_id', 'res.partner')
+        if not pay_line_account:
+            pay_line_account = self.env['ir.property'].\
+                with_context(force_company=self.company_id.id).get('property_account_payable_id', 'res.partner')
 
         wrtf_account = self.company_id.purchase_writeoff_account_id if self.type == 'in_invoice' else self.company_id.discount_account_id
         company_currency = self.company_id.currency_id
@@ -210,7 +219,7 @@ class AccountInvoice(models.Model):
         discount_limit = self.amount_total * (customer_discount_per / 100)
         writeoff_discount = self.discount_from_batch if batch_discount else self.wrtoff_discount
 
-        if self.discount_type == 'amount' and writeoff_discount > discount_limit or self.discount_type == 'percentage' and writeoff_discount > customer_discount_per and not batch_discount:
+        if self.type == 'out_invoice' and (self.discount_type == 'amount' and writeoff_discount > discount_limit or self.discount_type == 'percentage' and writeoff_discount > customer_discount_per and not batch_discount):
             raise UserError(_('Invoices can not be discounted that much. Create a credit memo instead.'))
 
         discount = writeoff_discount if self.discount_type == 'amount' or batch_discount else self.amount_total * (writeoff_discount / 100)
@@ -224,27 +233,29 @@ class AccountInvoice(models.Model):
             'journal_id': self.journal_id.id,
             'ref': self.reference,
             'line_ids': [(0, 0, {
-                'account_id': rev_line_account.id,
+                'account_id': pay_line_account.id if self.type == 'in_invoice' else rev_line_account.id ,
                 'company_currency_id': company_currency.id,
-                'credit': discount,
-                'debit': 0,
+                'credit': 0.0 if self.type == 'in_invoice' else discount,
+                'debit': discount if self.type == 'in_invoice' else 0.0,
                 'journal_id': self.journal_id.id,
                 'name': 'Discount',
                 'partner_id': self.partner_id.id
             }), (0, 0, {
                 'account_id': wrtf_account.id,
                 'company_currency_id': company_currency.id,
-                'credit': 0,
-                'debit': discount,
+                'credit': discount if self.type == 'in_invoice' else 0.0,
+                'debit': 0.0 if self.type == 'in_invoice' else discount,
                 'journal_id': self.journal_id.id,
                 'name': 'Discount',
                 'partner_id': self.partner_id.id
              })]
         })
-        amobj.post()
-        rcv_lines = self.move_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type == 'receivable')
-        rcv_wrtf = amobj.line_ids.filtered(lambda r: r.account_id.user_type_id.type == 'receivable')
-        (rcv_lines + rcv_wrtf).reconcile()
+        if not self._context.get('force_stop'):
+            amobj.post()
+            rcv_lines = self.move_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type in ('receivable', 'payable'))
+            rcv_wrtf = amobj.line_ids.filtered(lambda r: r.account_id.user_type_id.type in ('receivable', 'payable'))
+            (rcv_lines + rcv_wrtf).reconcile()
+        return amobj
 
 
 AccountInvoice()
