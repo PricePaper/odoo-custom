@@ -9,6 +9,12 @@ class SaleOrder(models.Model):
 
     quick_sale = fields.Boolean(string='is_quick_sale', default=False, copy=False)
 
+    def compute_credit_warning(self):
+        for order in self:
+            if not order.quick_sale and order.carrier_id:
+                order.adjust_delivery_line()
+        res = super(SaleOrder, self).compute_credit_warning()
+
     @api.multi
     def write(self, vals):
         """
@@ -16,8 +22,14 @@ class SaleOrder(models.Model):
         """
         res = super(SaleOrder, self).write(vals)
         for order in self:
-            if order.quick_sale:
-                order._remove_delivery_line()
+            if order.state != 'done' and ('state' not in vals or vals.get('state', '') != 'done'):
+                if not order.quick_sale and order.carrier_id:
+                    order.adjust_delivery_line()
+                else:
+                    order._remove_delivery_line()
+        # for order in self:
+        #     if order.quick_sale:
+        #         order._remove_delivery_line()
 
     @api.multi
     def action_quick_sale(self):
