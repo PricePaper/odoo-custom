@@ -47,14 +47,16 @@
                     <th style="width: 85px;text-align:center">Ordered</th>
                     <th style="width: 85px;text-align:center">Shipped</th>
                 </tr>
-                % for row in object.return_line_ids:
-                    <tr>
-                        <td> ${row.product_id.display_name}</td>
-                        <td> ${row.reason_id.name}</td>
-                        <td style="text-align:center"> ${row.ordered_qty}</td>
-                        <td style="text-align:center"> ${row.delivered_qty}</td>
-                    </tr>
-                %endfor
+                % if object.return_line_ids:
+                    % for row in object.return_line_ids:
+                        <tr>
+                            <td> ${row.product_id.display_name}</td>
+                            <td> ${row.reason_id.name}</td>
+                            <td style="text-align:center"> ${row.ordered_qty}</td>
+                            <td style="text-align:center"> ${row.delivered_qty}</td>
+                        </tr>
+                    % endfor
+                % endif
             </tbody>
         </table>
     </p>
@@ -107,24 +109,26 @@
                     <th style="border-bottom: 1px solid black;">Product UOM</th>
                     <th style="border-bottom: 1px solid black;">Note</th>
                 </tr>
-                % for line in ctx['summery_list']:
-                    <tr valign="top" style="font-size: 11px;">
-                        <td>${line.picking_id.partner_id.name}</td>
-                        <td>${line.picking_id.sale_id.display_name}</td>
-                        <td>${line.product_id.display_name}</td>
-                        <td>
-                            <ul>
-                            % for product in line.same_product_ids:
-                                <li>${product.display_name}</li>
-                            % endfor
-                            </ul>
-                        </td>
-                        <td>${line.product_uom_qty}</td>
-                        <td>${line.reserved_available_qty}</td>
-                        <td>${line.product_uom.display_name}</td>
-                        <td>${line.note or ''}</td>
-                    </tr>
-                % endfor
+                % if ctx['summery_list']:
+                    % for line in ctx['summery_list']:
+                        <tr valign="top" style="font-size: 11px;">
+                            <td>${line.picking_id.partner_id.name}</td>
+                            <td>${line.picking_id.sale_id.display_name}</td>
+                            <td>${line.product_id.display_name}</td>
+                            <td>
+                                <ul>
+                                % for product in line.same_product_ids:
+                                    <li>${product.display_name}</li>
+                                % endfor
+                                </ul>
+                            </td>
+                            <td>${line.product_uom_qty}</td>
+                            <td>${line.reserved_available_qty}</td>
+                            <td>${line.product_uom.display_name}</td>
+                            <td>${line.note or ''}</td>
+                        </tr>
+                    % endfor
+                % endif
             </table>
         </td>
     </tr>

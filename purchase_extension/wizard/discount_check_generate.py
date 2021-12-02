@@ -68,6 +68,8 @@ class GenerateDiscountCheck(models.TransientModel):
             bill = invoice.invoice_id
             if bill.discount_due_date and bill.discount_due_date >= fields.Date.today():
                 discount_flag = True
+                bill.write({'discount_type': 'amount', 'wrtoff_discount': invoice.total_amount - invoice.discount_amount})
+                am_rec = bill.with_context(force_stop=True).create_discount_writeoff()
                 payment_line = {
                     'invoice_id': bill.id,
                     'discount': invoice.total_amount - invoice.discount_amount,
@@ -78,7 +80,8 @@ class GenerateDiscountCheck(models.TransientModel):
                     'reference': bill.reference,
                     'invoice_date': invoice.date_invoice,
                     'payment_amount': invoice.discount_amount,
-                    'is_full_reconcile': True
+                    'is_full_reconcile': True,
+                    'discount_journal_id': am_rec.id
                     }
             if bill.partner_id.id in partner_group:
                 partner_group[bill.partner_id.id][0] += invoice.discount_amount if discount_flag else invoice.total_amount
@@ -102,12 +105,13 @@ class GenerateDiscountCheck(models.TransientModel):
             }
             if partner_group[partner][2]:
                 payment_vals.update({
-                    'payment_difference_handling': 'reconcile',
-                    'writeoff_label': 'Discount',
-                    'writeoff_account_id': purchase_writeoff_account.id,
                     'payment_lines': partner_group[partner][2]
                 })
-            payments |= payments.create(payment_vals)
+            payment = payments.create(payment_vals)
+            if partner_group[partner][2]:
+                payment.write({'discount_hold': True})
+            payments |= payment
+
         action = self.env.ref('account.action_account_payments_payable').read()[0]
         action['domain'] = [('id', 'in', payments.ids)]
         return action

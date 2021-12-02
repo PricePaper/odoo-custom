@@ -126,6 +126,9 @@ class AccountInvoice(models.Model):
                 gross_profit -= invoice.amount_total * 0.03
             if invoice.payment_term_id.discount_per > 0:
                 gross_profit -= invoice.amount_total * (invoice.payment_term_id.discount_per / 100)
+            if invoice.type == 'out_refund':
+                if gross_profit < 0:
+                    gross_profit = 0
             invoice.update({'gross_profit': round(gross_profit, 2)})
 
     # @api.multi
@@ -274,7 +277,7 @@ class AccountInvoiceLine(models.Model):
         tax based on resale number and previous sale.
         """
         res = super(AccountInvoiceLine, self)._set_taxes()
-        if self.invoice_id.type == 'out_invoice':
+        if self.invoice_id.type in ('out_invoice', 'out_refund'):
             prices_all = self.env['customer.product.price']
             for rec in self.invoice_id.partner_id.customer_pricelist_ids:
                 if not rec.pricelist_id.expiry_date or rec.pricelist_id.expiry_date >= str(date.today()):
