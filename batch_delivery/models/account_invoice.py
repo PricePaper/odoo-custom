@@ -115,22 +115,37 @@ class AccountInvoice(models.Model):
             action['res_id'] = pickings.id
         return action
 
+    def remove_zero_qty_line(self):
+        for invoice in self:
+            for line in invoice.invoice_line_ids:
+                if line.quantity == 0:
+                    line.sudo().unlink()
+            delivery_inv_lines = invoice.env['account.invoice.line']
+            # if a invoice have only one line we need to make sure it's not a delivery charge.
+            # if its a delivery charge, remove it from invoice.
+            if len(invoice.invoice_line_ids) == 1 and invoice.invoice_line_ids.mapped('sale_line_ids'):
+                if all(invoice.invoice_line_ids.mapped('sale_line_ids').mapped('is_delivery')):
+                    delivery_inv_lines |= invoice.invoice_line_ids
+            if delivery_inv_lines:
+                delivery_inv_lines.sudo().unlink()
+
     @api.multi
     def action_invoice_open(self):
 
         if self:
             for invoice in self:
-                for line in invoice.invoice_line_ids:
-                    if line.quantity == 0:
-                        line.sudo().unlink()
-                delivery_inv_lines = self.env['account.invoice.line']
-                # if a invoice have only one line we need to make sure it's not a delivery charge.
-                # if its a delivery charge, remove it from invoice.
-                if len(invoice.invoice_line_ids) == 1 and invoice.invoice_line_ids.mapped('sale_line_ids'):
-                    if all(invoice.invoice_line_ids.mapped('sale_line_ids').mapped('is_delivery')):
-                        delivery_inv_lines |= invoice.invoice_line_ids
-                if delivery_inv_lines:
-                    delivery_inv_lines.sudo().unlink()
+                invoice.remove_zero_qty_line()
+                # for line in invoice.invoice_line_ids:
+                #     if line.quantity == 0:
+                #         line.sudo().unlink()
+                # delivery_inv_lines = self.env['account.invoice.line']
+                # # if a invoice have only one line we need to make sure it's not a delivery charge.
+                # # if its a delivery charge, remove it from invoice.
+                # if len(invoice.invoice_line_ids) == 1 and invoice.invoice_line_ids.mapped('sale_line_ids'):
+                #     if all(invoice.invoice_line_ids.mapped('sale_line_ids').mapped('is_delivery')):
+                #         delivery_inv_lines |= invoice.invoice_line_ids
+                # if delivery_inv_lines:
+                #     delivery_inv_lines.sudo().unlink()
             stock_picking = self.env['stock.picking']
             if  self.mapped('picking_ids').filtered(lambda pick: pick.state == 'cancel'):
                 raise UserError(_('There is a Cancelled Picking linked to this invoice.'))
