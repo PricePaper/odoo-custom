@@ -764,7 +764,7 @@ class SaleOrder(models.Model):
                 order.message_post(body=msg)
                 return msg
             else:
-                order.write({'is_creditexceed': False, 'ready_to_release': True})
+                # order.write({'is_creditexceed': False, 'ready_to_release': True})
                 return ''
 
     def check_low_price(self):
@@ -787,7 +787,7 @@ class SaleOrder(models.Model):
                 order.message_post(body=msg1)
                 return msg1
             else:
-                order.write({'is_low_price': False, 'release_price_hold': True})
+                # order.write({'is_low_price': False, 'release_price_hold': True})
                 return ''
 
     @api.onchange('payment_term_id')
