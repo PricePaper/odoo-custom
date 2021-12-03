@@ -3,6 +3,7 @@
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 
+from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT
 from odoo import models, fields, registry, api, _
 from odoo.tools.float_utils import float_compare
 from odoo.exceptions import ValidationError, AccessError
@@ -67,6 +68,13 @@ class PurchaseOrder(models.Model):
             if purchase_rep:
                 vals['user_id'] = purchase_rep[0].id
         return super(PurchaseOrder, self).create(vals)
+
+    @api.multi
+    def write(self, vals):
+        result = super(PurchaseOrder, self).write(vals)
+        if 'date_planned' in vals and vals['date_planned']:
+            self.action_set_date_planned()
+        return result
 
     @api.multi
     def _add_supplier_to_product(self):
@@ -213,7 +221,7 @@ class PurchaseOrder(models.Model):
                                                     })
             result_list = self.sanitize_uom(result_dict)
 
-        context = {'data': result_list}
+        context = {'data': result_list, 'default_vendor_id': self.partner_id.id}
         view_id = self.env.ref('purchase_extension.view_sale_history_add_po_wiz').id
         return {
             'name': _('Add sale history to PO'),
@@ -289,6 +297,30 @@ class PurchaseOrder(models.Model):
                 [('requisition_id', '!=', False), ('requisition_id', '=', purchase_order.requisition_id.id),
                  ('id', 'not in', purchase_order.ids)])
             orders.button_cancel()
+            tr = ''
+
+            for line in purchase_order.order_line:
+                product = line.product_id
+                if round(line.product_id.standard_price, 2) != line.price_unit:
+                    tr += '''<tr>
+                        <td><b>{}</b></td>
+                        <td><b>${cost:.2f}</b></td>
+                        <td style="color:red"><b>${price:.2f}</b></td>
+                    </tr>'''.format(product.display_name, cost=product.standard_price, price=line.price_unit)
+            if tr:
+                note = '''
+                <table class="table table-bordered">
+                    <tbody>
+                    <tr><td><b>Product</b></td><td><b>Cost</b></td><td><b>PO Price</b></td></tr>
+                    {}
+                    </tbody>
+                </table>
+                '''.format(tr)
+                activity_vals = {
+                        'activity_type_id': self.env.ref('mail.mail_activity_data_todo').id,
+                        'user_id': purchase_order.user_id.id if purchase_order.user_id else self.env.user.id
+                    }
+                purchase_order.activity_schedule(summary="Cost Discrepancy", note=note, **activity_vals)
         return super(PurchaseOrder, self).button_confirm()
 
 
@@ -301,6 +333,15 @@ class PurchaseOrderLine(models.Model):
     gross_volume = fields.Float(string="Gross Volume", compute='_compute_gross_weight_volume')
     gross_weight = fields.Float(string="Gross Weight", compute='_compute_gross_weight_volume')
 
+    @api.onchange('product_qty', 'product_uom')
+    def _onchange_quantity(self):
+        res = super(PurchaseOrderLine, self)._onchange_quantity()
+        date_order = self.order_id.date_order
+        delay = self.order_id.vendor_delay
+        if date_order and delay:
+            planned_date = date_order + relativedelta(days=delay)
+            self.date_planned = planned_date.strftime(DEFAULT_SERVER_DATETIME_FORMAT)
+        return res
 
     @api.model
     def create(self, vals):

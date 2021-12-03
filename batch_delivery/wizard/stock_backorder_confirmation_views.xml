@@ -12,6 +12,7 @@
 
             <xpath expr="//footer/button[@name='process_cancel_backorder']" position="attributes">
                 <attribute name="string">Submit</attribute>
+                <attribute name="context">{'back_order_cancel': True}</attribute>
             </xpath>
         </field>
     </record>

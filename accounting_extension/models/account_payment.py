@@ -214,6 +214,10 @@ class AccountRegisterPayment(models.TransientModel):
             discount_amount = 0
             invoice_ids = res.get('invoice_ids', []) and res.get('invoice_ids', [])[0][2]
             for line in self.payment_lines.filtered(lambda rec: rec.invoice_id.id in invoice_ids):
+                am_rec = self.env['account.move']
+                if line.discount:
+                    line.invoice_id.write({'discount_from_batch': line.discount})
+                    am_rec = line.invoice_id.with_context(batch_discount=True).create_discount_writeoff()
                 discount_amount += line.discount
                 lines.append((0, 0, {
                     'invoice_id': line.invoice_id.id,
@@ -225,13 +229,16 @@ class AccountRegisterPayment(models.TransientModel):
                     'payment_amount': line.payment_amount,
                     'is_full_reconcile': line.is_full_reconcile,
                     'amount_total': line.amount_total,
+                    'discount_journal_id': am_rec.id if am_rec else False
                 }))
-            res.update({'payment_reference': self.payment_reference, })
-            if discount_amount and self.writeoff_account_id:
-                res.update({'payment_difference_handling': 'reconcile',
-                            'writeoff_account_id': self.writeoff_account_id.id,
-                            'discount_amount': discount_amount,
-                            })
+
+
+            res.update({
+                'payment_reference': self.payment_reference,
+                'payment_difference_handling': 'open',
+                'discount_amount': discount_amount,
+            })
+
             if lines:
                 res.update({'payment_lines': lines})
         return result
@@ -270,6 +277,12 @@ class AccountRegisterPaymentLines(models.TransientModel):
     @api.onchange("discount")
     def onchange_discount(self):
         if self.discount != 0:
+            customer_discount_per = self.env['ir.config_parameter'].sudo().get_param('accounting_extension.customer_discount_limit', 5.00)
+            if isinstance(customer_discount_per, str):
+                customer_discount_per = float(customer_discount_per)
+            discount_amount_limit = round(self.invoice_id.residual_signed * (customer_discount_per / 100), 2)
+            if discount_amount_limit and discount_amount_limit < self.discount and self.invoice_id.type == 'out_invoice':
+                raise UserError(_('Cannot add discount more than {}%.'.format(customer_discount_per)))
             if self.amount_total >= 0:
                 self.payment_amount = self.amount_total - self.discount
             else:
@@ -308,6 +321,26 @@ class AccountPayment(models.Model):
     payment_lines = fields.One2many('account.payment.lines', 'payment_id')
     has_payment_lines = fields.Boolean('Has Payment Lines?', compute="_has_lines")
     payment_reference = fields.Char('Payment Reference')
+    discount_journal_id = fields.Many2one('account.move')
+
+    @api.multi
+    def cancel(self):
+        super(AccountPayment, self).cancel()
+        for payment in self:
+            if payment.discount_journal_id:
+                discount_lines = payment.discount_journal_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type in ('receivable', 'payable'))
+            else:
+                discount_lines = payment.payment_lines.mapped('discount_journal_id.line_ids').filtered(lambda r: r.account_id.user_type_id.type in ('receivable', 'payable'))
+            discount_lines.remove_active_discount()
+
+    def action_validate_invoice_payment(self):
+        for payment in self:
+            if len(payment.invoice_ids) == 1 and payment.discount_amount and not payment.has_payment_lines:
+                payment.invoice_ids.write({'discount_type': 'amount', 'wrtoff_discount': payment.discount_amount})
+                am_rec = payment.invoice_ids.create_discount_writeoff()
+                payment.write({'discount_journal_id': am_rec.id})
+        res = super(AccountPayment, self).action_validate_invoice_payment()
+        return res
 
     @api.model
     def default_get(self, fields):
@@ -345,8 +378,7 @@ class AccountPayment(models.Model):
 
         if flag:
             res.update({
-                'payment_difference_handling': 'reconcile',
-                'writeoff_account_id': wo_account and wo_account.id or 0,
+                'payment_difference_handling': 'open',
                 'discount_amount': discounted_total
             })
 
@@ -570,6 +602,7 @@ class AccountPaymentLines(models.Model):
     invoice_date = fields.Datetime('Invoice Date')
     payment_amount = fields.Float('Payment Total')
     is_full_reconcile = fields.Boolean('Full')
+    discount_journal_id = fields.Many2one('account.move', 'Discount Journal')
 
 
 AccountPaymentLines()

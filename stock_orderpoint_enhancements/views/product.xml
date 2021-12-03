@@ -10,7 +10,7 @@
                 <!--product smart buttons order changes-->
                 <xpath expr="//button[@name='%(stock.product_open_orderpoint)d']" position="after">
                     <xpath expr="//button[@name='action_view_sales']" position="move"/>
-                    <button class="oe_stat_button" name="show_forecast" type="object" string="View Sales Forecast"
+                    <button class="oe_stat_button" name="get_number_of_days" type="object" string="View Sales Forecast"
                             icon="fa-signal"/>
                 </xpath>
 

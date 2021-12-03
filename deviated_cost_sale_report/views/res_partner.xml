@@ -11,7 +11,8 @@
                 <xpath expr="//notebook/page[@name='sales_purchases']/group/group/field[@name='customer']"
                        position="after">
                     <field name="deviated_contract_ids" widget="many2many_tags"
-                           domain="[('expiration_date','&gt;',((context_today()).strftime('%Y-%m-%d')+' '+'23:59:59'))]"/>
+                           domain="[('expiration_date','&gt;',((context_today()).strftime('%Y-%m-%d')+' '+'23:59:59'))]"
+                           attrs="{'invisible':[('parent_id', '!=', False)]}"/>
                 </xpath>
             </field>
         </record>

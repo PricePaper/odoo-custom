@@ -22,7 +22,7 @@ class CustomerProductPrice(models.Model):
     price_lock = fields.Boolean(string='Price Change Lock', default=False)
     lock_expiry_date = fields.Date(string='Lock Expiry date')
     currency_id = fields.Many2one(related="product_id.currency_id", readonly=True)
-    expiry_date = fields.Date('Valid Upto', related='pricelist_id.expiry_date')
+    expiry_date = fields.Date('Valid Until', related='pricelist_id.expiry_date')
 
     @api.depends('pricelist_id')
     def _compute_partner(self):

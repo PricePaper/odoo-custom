@@ -11,4 +11,12 @@ class ResCompany(models.Model):
 
 ResCompany()
 
+
+class ResConfigSettings(models.TransientModel):
+    _inherit = 'res.config.settings'
+
+    credit_purge_account = fields.Many2one('account.account',
+        string='Old credit purge: Account',
+        config_parameter='purge_old_open_credits.credit_purge_account')
+
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="cost_discrepancy_report_from" model="ir.ui.view">
+            <field name="name">cost.discrepancy.report.form</field>
+            <field name="model">cost.discrepancy.report</field>
+            <field name="arch" type="xml">
+                <form string="Vendor Product QTY Report">
+                    <sheet>
+                        <script>
+                          $(document).ready(function(){
+                              $('.modal-dialog').css({'width': '500px', 'height': '450px'});
+                          });
+                        </script>
+                        <div class="row">
+                            <field name="start_date" required="1" class="col" placeholder="Start Date.."/>
+                            <field name="end_date" required="1" class="col" style="padding-left:10px;" placeholder="End Date.."/>
+                        </div>
+                    </sheet>
+                    <footer>
+                      <button string="Print(xlsx)" type="object" name="print_xlxs" class="btn btn-primary"/>
+                  </footer>
+                </form>
+            </field>
+        </record>
+        <record id="action_discrepancy_report" model="ir.actions.act_window">
+            <field name="name">Cost Discrepancy Report</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">cost.discrepancy.report</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+        <menuitem id="menu_discrepancy_report"
+                  name="Cost Discrepancy Report"
+                  action="action_discrepancy_report"
+                  parent="purchase.menu_procurement_management"
+                  groups="purchase.group_purchase_manager"
+        />
+    </data>
+</odoo>

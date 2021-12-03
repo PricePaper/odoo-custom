@@ -42,11 +42,20 @@ class AddSaleHistoryPoLine(models.TransientModel):
     month15 = fields.Float(string='Mnt15')
 
     is_expired = fields.Boolean(compute ='_check_is_expired', string='Is expired')
+    min_qty = fields.Float(compute='_compute_min_qty_from_seller')
 
+    @api.depends('parent_id.vendor_id')
+    def _compute_min_qty_from_seller(self):
+        for rec in self:
+            vendor = rec.parent_id.vendor_id
+            if vendor:
+                seller_record = rec.product_id.seller_ids.filtered(lambda l: l.name.id == vendor.id)
+                if seller_record:
+                    rec.min_qty = seller_record[0].min_qty
 
     @api.onchange('new_qty')
     def _onchange_new_qty(self):
-        vendor = self.env['purchase.order'].browse(self._context.get('active_id')).partner_id
+        vendor = self.parent_id.vendor_id
         if vendor:
             seller_record = self.product_id.seller_ids.filtered(lambda l: l.name.id == vendor.id)
             if seller_record and self.new_qty < seller_record.min_qty:
@@ -79,16 +88,15 @@ class AddSaleHistoryPoLine(models.TransientModel):
                     line.forecast_days_max = delay_days_max
 
 
-    @api.depends('product_id')
+    @api.depends('product_id', 'parent_id.vendor_id')
     def _check_is_expired(self):
         """
         check if this is the vendor price expired
         """
-        if self._context.get('active_model', False) == 'purchase.order' and self._context.get('active_id', False):
-            vendor = self.env['purchase.order'].browse(self._context.get('active_id')).partner_id
+        if self._context.get('active_model', False) == 'purchase.order':
             for line in self:
                 seller_record = line.product_id.seller_ids.filtered(
-                lambda l: l.name.id == vendor.id and l.price == line.product_price and
+                lambda l: l.name.id == line.parent_id.vendor_id.id and l.price == line.product_price and
                 (not l.date_end or (l.date_end and l.date_end >= date.today())))
                 if not seller_record:
                     line.is_expired = True
@@ -142,12 +150,11 @@ class AddSaleHistoryPoLine(models.TransientModel):
 
 
 
-    @api.depends('product_id')
+    @api.depends('product_id', 'parent_id.vendor_id')
     def _compute_product_price(self):
-        if self._context.get('active_model', False) == 'purchase.order' and self._context.get('active_id', False):
-            vendor = self.env['purchase.order'].browse(self._context.get('active_id')).partner_id
+        if self._context.get('active_model', False) == 'purchase.order':
             for line in self:
-                seller_record = line.product_id.seller_ids.filtered(lambda l: l.name.id == vendor.id)
+                seller_record = line.product_id.seller_ids.filtered(lambda l: l.name.id == line.parent_id.vendor_id.id)
                 line.product_price = seller_record and seller_record[0].price or 0.00
 
 
@@ -161,7 +168,7 @@ class AddSaleHistoryPO(models.TransientModel):
 
     search_box = fields.Char(string='Search')
     sale_history_ids = fields.One2many('add.sale.history.po.line', 'parent_id', string="Sales History")
-
+    vendor_id = fields.Many2one('res.partner', string="Supplier")
 
     @api.onchange('search_box')
     def search_product(self):

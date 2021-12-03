@@ -26,7 +26,7 @@
                   <field name="paid_date" readonly="1"/>
               </field>
                 <field name="user_id" position="after">
-                    <field name="sales_person_ids" widget='many2many_tags'/>
+                    <field name="sales_person_ids" widget='many2many_tags' readonly="1" force_save="1"/>
                     <field name="check_bounce_invoice" invisible='1'/>
                 </field>
                 <field name="user_id" position="attributes">
@@ -37,6 +37,7 @@
                 </field>
                 <page  name="other_info" position="after">
                   <page string="Sales Commission" groups="base.group_no_one">
+                    <field name="commission_rule_ids" invisible='1'/>
                     <field name="sale_commission_ids"/>
                   </page>
                 </page>

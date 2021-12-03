@@ -60,8 +60,12 @@
                     <field name="working_cost" invisible="1"/>
                 </xpath>
                 <xpath expr="//field[@name='amount_untaxed']" position="after">
-                    <field name="gross_profit" widget="monetary"
-                           options="{'currency_field': 'currency_id', 'field_digits': True}"/>
+                    <field name="gross_profit" widget="monetary" string='Profit'
+                           options="{'currency_field': 'currency_id', 'field_digits': True}"
+                           attrs="{'invisible':[('state','!=', 'paid')]}"/>
+                    <field name="gross_profit" widget="monetary" string='Predicted Profit'
+                           options="{'currency_field': 'currency_id', 'field_digits': True}"
+                           attrs="{'invisible':[('state','=', 'paid')]}"/>
                 </xpath>
 <!--                <xpath expr="//header/button[@name='action_invoice_open']" position="before">-->
 <!--                    <field name="is_released" invisible="1"/>-->

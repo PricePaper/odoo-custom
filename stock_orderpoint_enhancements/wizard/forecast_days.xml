@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_prophet_days_wiz" model="ir.ui.view">
+            <field name="name">prophet.forecast.days</field>
+            <field name="model">prophet.forecast.days</field>
+            <field name="arch" type="xml">
+                <form string="FBProphet Forecast days">
+                    <sheet>
+                        <separator string="FBProphet Forecast days"/>
+                        <group>
+                            <group>
+                                <field name="number_of_days" help='Number of days Forecast to be done'/>
+                            </group>
+                        </group>
+                    </sheet>
+                    <footer>
+                        <button string="Submit" type="object" name="show_forecast"/>
+                        or
+                        <button string="Cancel" class="oe_link" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>

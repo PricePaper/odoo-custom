@@ -118,7 +118,23 @@ class ProductProduct(models.Model):
         return qty
 
     @api.multi
-    def show_forecast(self):
+    def get_number_of_days(self):
+        """
+        Get number of days through a wizard
+        """
+        view_id = self.env.ref('stock_orderpoint_enhancements.view_prophet_days_wiz').id
+        return {
+            'name': _('FBProphet Forecast Days'),
+            'view_type': 'form',
+            'view_mode': 'form',
+            'res_model': 'prophet.forecast.days',
+            'view_id': view_id,
+            'type': 'ir.actions.act_window',
+            'target': 'new'
+        }
+
+    @api.multi
+    def show_forecast(self, no_of_days=31):
         """
         Return a graph and pivot views which are
         ploted with the forecast result
@@ -126,7 +142,7 @@ class ProductProduct(models.Model):
         to_date = datetime.date.today()
         self.ensure_one()
         from_date = (to_date - relativedelta(days=self.past_days)).strftime('%Y-%m-%d')
-        periods = self.forecast_days or 31
+        periods = no_of_days
         config = self.get_fbprophet_config()
         if not config:
             raise UserError(_("FB prophet configuration not found"))
@@ -137,34 +153,7 @@ class ProductProduct(models.Model):
                 from_date = config.start_date
 
         forecast = self.forecast_sales(config, str(from_date), periods=periods, freq='d', to_date=str(to_date))
-        self.env['product.forecast'].search([]).unlink()
-        flag = False
-        count = 0
-        for ele in forecast:
-            if datetime.datetime.strptime(ele[0], '%Y-%m-%d').date() >= to_date:
-                flag = True
-            if flag:
-                count += 1
-                self.env['product.forecast'].create({
-                    'product_id': self.id,
-                    'date': ele[0],
-                    'quantity': ele[1],  # quantity,
-                    'quantity_min': ele[2],  # min_quantity,
-                    'quantity_max': ele[3],  # max_quantity,
-                })
-
-        graph_id = self.env.ref('stock_orderpoint_enhancements.view_order_product_forecast_graph').id
-        pivot_id = self.env.ref('stock_orderpoint_enhancements.view_order_product_forecast_pivot').id
-        res = {
-            "type": "ir.actions.act_window",
-            "name": "Sale Forecast",
-            "res_model": "product.forecast",
-            "views": [[graph_id, "graph"], [pivot_id, "pivot"]],
-            "domain": [["product_id", "=", self.id]],
-            "target": "current",
-        }
-
-        return res
+        return forecast, to_date
 
     @api.model
     def filler_to_append_zero_qty(self, result, to_date, from_date):
@@ -176,24 +165,6 @@ class ProductProduct(models.Model):
         res = []
         start_date = result and result[0] and result[0][0]
         start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d').date()
-        # start_date = datetime.datetime.strptime(from_date, "%Y-%m-%d").date()
-
-        def _get_next_business_day(date):
-
-            exclude_days = (4, 5)
-
-            # Before 2019-04-26 trucks where loaded M-F, after 04-26 they were
-            # loaded Su-Th
-            if date < datetime.date(2019, 4, 26):
-                exclude_days = (5, 6)
-
-            next_date = date
-
-            while True:
-                next_date = next_date + relativedelta(days=1)
-                if next_date.weekday() not in exclude_days:
-                    return next_date
-                continue
 
         while (start_date <= to_date):
             val = start_date.strftime("%Y-%m-%d")
@@ -210,7 +181,7 @@ class ProductProduct(models.Model):
                         sale_uom_factor = self.env['uom.uom'].browse(product_uom_qty[2]).factor
                         qty += ((product_uom_qty[1] * self.uom_id.factor) / sale_uom_factor)
                 res.append((val, qty))
-            start_date = _get_next_business_day(start_date)
+            start_date = start_date + relativedelta(days=1)
         return res
 
     @api.multi

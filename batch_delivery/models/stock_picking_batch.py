@@ -22,7 +22,7 @@ class StockPickingBatch(models.Model):
 
     route_id = fields.Many2one('truck.route', string='Route', track_visibility='onchange', readonly=True)
     truck_driver_id = fields.Many2one('res.partner', string='Driver', track_visibility='onchange')
-    date = fields.Date(string='Scheduled Date', default=date.today())
+    date = fields.Date(string='Scheduled Date', default=date.today(), copy=False, track_visibility='onchange')
     payment_ids = fields.One2many('account.payment', 'batch_id', string='Payments')
     actual_returned = fields.Float(string='Total Amount', help='Total amount returned by the driver.', digits=dp.get_precision('Product Price'))
     cash_collected_lines = fields.One2many('cash.collected.lines', 'batch_id', string='Cash Collected Breakup')
@@ -40,8 +40,8 @@ class StockPickingBatch(models.Model):
     to_invoice = fields.Boolean(string='Need Invoice', compute='_compute_to_invoice_state')
     invoice_ids = fields.Many2many('account.invoice', compute='_compute_invoice_ids')
     show_warning = fields.Boolean(string='Pending Line Warning')
-    cash_amount = fields.Float(string='Cash Amount', digits=dp.get_precision('Product Price'))
-    cheque_amount = fields.Float(string='Check Amount', digits=dp.get_precision('Product Price'))
+    cash_amount = fields.Float(string='Cash Amount', digits=dp.get_precision('Product Price'), track_visibility='onchange')
+    cheque_amount = fields.Float(string='Check Amount', digits=dp.get_precision('Product Price'), track_visibility='onchange')
 
     state = fields.Selection([
         ('draft', 'Draft'),

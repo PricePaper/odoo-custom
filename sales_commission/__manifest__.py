@@ -32,6 +32,7 @@ Sales commission module implemented for Price Papers.
         'views/res_partner.xml',
         'views/account_invoice.xml',
         'views/commission_rules.xml',
+        'views/commission_percentage.xml',
         'views/sale_view.xml',
         'views/res_company.xml',
         'views/menu.xml',

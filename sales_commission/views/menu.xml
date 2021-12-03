@@ -6,6 +6,12 @@
              parent="sale.sale_order_menu"
              groups="sales_commission.group_sales_commission"
               />
+        <menuitem id="menu_customer_rule"
+            name="Customer - Salerep rule"
+            action="action_customer_commission_rule"
+            parent="sale.sale_order_menu"
+            groups="sales_commission.group_sales_commission"
+             />
         <menuitem id="menu_existing_user"
             name="Search Existing Customer"
             action="action_existing_user"

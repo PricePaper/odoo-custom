@@ -7,6 +7,7 @@ odoo.define('purchase_extension.action_manager', function (require) {
 var ActionManager = require('web.ActionManager');
 var framework = require('web.framework');
 var session = require('web.session');
+var crash_manager = require('web.crash_manager');
 ActionManager.include({
     _executexlsxReportDownloadAction: function (action) {
         framework.blockUI();
@@ -15,13 +16,14 @@ ActionManager.include({
             url: '/xlsx_reports',
             data: action.data,
             success: def.resolve.bind(def),
-            error: (error) => this.call('crash_manager', 'rpc_error', error),
             complete: framework.unblockUI,
+            error: crash_manager.rpc_error.bind(crash_manager)
         });
         return def;
     },
     _handleAction: function (action, options) {
         if (action.report_type === 'xlsx') {
+            document.querySelector('.close').click();
             return this._executexlsxReportDownloadAction(action, options);
 
         }

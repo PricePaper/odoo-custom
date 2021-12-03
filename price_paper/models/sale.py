@@ -58,6 +58,7 @@ class SaleOrder(models.Model):
     sc_child_order_count = fields.Integer(compute='_compute_sc_child_order_count')
     delivery_cost = fields.Float(string='Estimated Delivery Cost', readonly=True, copy=False)
     po_count = fields.Integer(compute='_compute_po_count', readonly=True)
+    active = fields.Boolean(track_visibility='onchange')
 
     @api.multi
     def action_view_purchase_orders(self):
@@ -74,7 +75,7 @@ class SaleOrder(models.Model):
     @api.depends('order_line.move_ids.created_purchase_line_id')
     def _compute_po_count(self):
         for sale in self:
-            sale.po_count = len(sale.order_line.mapped('move_ids.created_purchase_line_id.order_id').ids)
+            sale.po_count = len(sale.sudo().order_line.mapped('move_ids.created_purchase_line_id.order_id').ids)
 
     def _compute_sc_child_order_count(self):
         for order in self:
@@ -158,9 +159,25 @@ class SaleOrder(models.Model):
             sale_order.is_low_price = False
             sale_order.release_price_hold = False
             sale_order.hold_state = False
-
+            po_state = sale_order.sudo().order_line.mapped('move_ids.created_purchase_line_id.order_id.state')
+            if 'purchase' in po_state or 'done' in po_state or 'received' in po_state:
+                raise UserError(_('You can not cancel this order because there is a purchase order is already processed.'))
+            else:
+                sale_order.sudo().order_line.mapped('move_ids.created_purchase_line_id.order_id').button_cancel()
             if sale_order.storage_contract:
                 sale_order.order_line.mapped('purchase_line_ids.order_id').button_cancel()
+            else:
+                for so_line in sale_order.order_line:
+                    for po_line in so_line.mapped('move_ids').filtered(lambda r: r.state != 'cancel').mapped('created_purchase_line_id'):
+                        if po_line.order_id.state in ['purchase', 'done', 'received']:
+                            raise UserError(_('You cannot cancel this order.'))
+                        else:
+                            if len(po_line.order_id.origin.split(',')) > 1 or len(po_line.order_id.origin.split(', ')) > 1:
+                                po_line.write({'product_qty': po_line.product_qty - so_line.product_uom_qty})
+                                po_line.order_id.message_post(body=_("sale order %s has been cancelled by the user %s." % (sale_order.name, self.env.user.name)), subtype_id=self.env.ref('mail.mt_note').id)
+                            else:
+                                po_line.order_id.button_cancel()
+
         sc_having_lines = sale_order.order_line.filtered('storage_contract_line_id')
         if sc_having_lines:
             sc_having_lines.write({'product_uom_qty': 0})
@@ -472,7 +489,10 @@ class SaleOrder(models.Model):
             sequence = self.env.ref('price_paper.seq_sc_sale_order', raise_if_not_found=False)
             if sequence:
                 vals['name'] = sequence._next()
-        return super(SaleOrder, self).create(vals)
+        order = super(SaleOrder, self).create(vals)
+        if order.sales_person_ids:
+            order.message_subscribe(partner_ids=order.sales_person_ids.ids)
+        return order
 
     @api.multi
     def write(self, vals):
@@ -496,11 +516,14 @@ class SaleOrder(models.Model):
         if not self._context.get('from_import'):
             self.check_payment_term()
             for order in self:
-                if 'state' not in vals or 'state' in vals and vals['state'] != 'done':
+                if order.state != 'done' and ('state' not in vals or 'state' in vals and vals['state'] != 'done'):
                     if order.carrier_id:
                         order.adjust_delivery_line()
                     else:
                         order._remove_delivery_line()
+
+        if 'sales_person_ids' in vals and vals['sales_person_ids']:
+            self.message_subscribe(partner_ids=vals['sales_person_ids'][0][-1])
         return res
 
     @api.multi
@@ -542,13 +565,13 @@ class SaleOrder(models.Model):
                 order.delivery_rating_success = True
                 order.delivery_price = res['price']
                 order.delivery_message = res['warning_message']
-                if order.carrier_id.delivery_type not in ['fixed', 'based_on_rule']:
+                if order.carrier_id.delivery_type not in ['fixed', 'base_on_rule']:
                     order.delivery_cost = res['cost']
             else:
                 order.delivery_rating_success = False
                 order.delivery_price = 0.0
                 order.delivery_message = res['error_message']
-                if order.carrier_id.delivery_type not in ['fixed', 'based_on_rule']:
+                if order.carrier_id.delivery_type not in ['fixed', 'base_on_rule']:
                     order.delivery_cost = 0.0
 
     @api.multi
@@ -914,6 +937,27 @@ class SaleOrder(models.Model):
         self.write({'state': 'sale', 'confirmation_date': fields.Datetime.today()})
         return True
 
+
+    def so_duplicate(self):
+        new_records = self.env['sale.order']
+        for rec in self:
+            new_records |= rec.copy()
+        action_rec = self.env.ref('sale.action_quotations_with_onboarding')
+        action = action_rec.read()[0]
+        if len(new_records) > 1:
+          action['domain'] = [('id', 'in', new_records.ids)]
+        elif len(new_records) == 1:
+          action['views'] = [(self.env.ref('sale.view_order_form').id, 'form')]
+          action['res_id'] = new_records.ids[0]
+        return action
+
+    @api.model
+    def sc_archive_cron(self):
+        records = self.env['sale.order'].search([('active', '=', True), ('storage_contract', '=', True), ('state', 'in', ['released', 'done'])])
+        for record in records:
+            if not any(record.order_line.mapped(lambda l: l.storage_remaining_qty)):
+                record.write({'active': False})
+
     def run_storage(self):
         for order in self:
             route = self.env.ref('purchase_stock.route_warehouse0_buy', raise_if_not_found=True)
@@ -1041,6 +1085,13 @@ class SaleOrderLine(models.Model):
     storage_contract_line_ids = fields.One2many('sale.order.line', 'storage_contract_line_id')
     selling_min_qty = fields.Float(string="Minimum Qty")
     note_expiry_date = fields.Date('Note Valid Upto')
+    scraped_qty = fields.Float(compute='_compute_scrape_qty', string='Quantity Scraped', store=False)
+    date_planned = fields.Date(related='order_id.release_date', store=False, readonly=True, string='Date Planned')
+
+    @api.depends('move_ids.picking_id.move_lines.scrapped')
+    def _compute_scrape_qty(self):
+        for so_line in self:
+            so_line.scraped_qty = sum(so_line.move_ids.mapped('picking_id').mapped('move_lines').filtered(lambda r: r.scrapped and r.product_id.id == so_line.product_id.id).mapped('quantity_done'))
 
     @api.depends('state', 'product_uom_qty', 'qty_delivered', 'qty_to_invoice', 'qty_invoiced',
                  'order_id.storage_contract')
@@ -1105,17 +1156,17 @@ class SaleOrderLine(models.Model):
         for line in self:
             line.product_onhand = line.product_id.qty_available - line.product_id.outgoing_qty
 
-    @api.depends('product_uom_qty', 'qty_delivered', 'storage_contract_line_ids', 'state')
+    @api.depends('product_uom_qty', 'qty_delivered', 'storage_contract_line_ids.qty_delivered', 'state')
     def _compute_storage_delivered_qty(self):
         for line in self:
             if line.order_id.storage_contract:
                 sale_lines = line.storage_contract_line_ids.filtered(lambda r: r.order_id.state not in ['draft', 'cancel'])
                 if not line.sudo().purchase_line_ids and line.state in ['released', 'done']:
-                    line.storage_remaining_qty = line.product_uom_qty - sum(sale_lines.mapped('product_uom_qty'))
+                    line.storage_remaining_qty = line.product_uom_qty - sum(sale_lines.mapped('qty_delivered')) - sum(sale_lines.mapped('scraped_qty'))
                 else:
-                    line.storage_remaining_qty = line.qty_delivered - sum(sale_lines.mapped('product_uom_qty'))
+                    line.storage_remaining_qty = line.qty_delivered - sum(sale_lines.mapped('qty_delivered')) - sum(sale_lines.mapped('scraped_qty'))
             else:
-                break
+                pass
 
     @api.model
     def _search_storage_remaining_qty(self, operator, value):
@@ -1128,11 +1179,12 @@ class SaleOrderLine(models.Model):
                 ('is_downpayment', '=', False)
             ])
             for sl in lines:
+                lines = sl.storage_contract_line_ids.filtered(lambda r: r.order_id.state not in ['draft', 'cancel'])
                 if not sl.sudo().purchase_line_ids:
-                    if (sl.product_uom_qty - sum(sl.storage_contract_line_ids.filtered(lambda r: r.order_id.state not in ['draft', 'cancel']).mapped('product_uom_qty'))) > value:
+                    if (sl.product_uom_qty - sum(lines.mapped('qty_delivered')) - sum(lines.mapped('scraped_qty'))) > value:
                         ids.append(sl.id)
                 else:
-                    if (sl.qty_delivered - sum(sl.storage_contract_line_ids.filtered(lambda r: r.order_id.state not in ['draft', 'cancel']).mapped('product_uom_qty'))) > value:
+                    if (sl.qty_delivered - sum(lines.mapped('qty_delivered')) - sum(lines.mapped('scraped_qty'))) > value:
                         ids.append(sl.id)
         return [('id', 'in', ids)]
 
@@ -1230,8 +1282,7 @@ class SaleOrderLine(models.Model):
 
                             prices_all = self.env['customer.product.price']
                             for rec in self.order_id.partner_id.customer_pricelist_ids:
-                                if not rec.pricelist_id.expiry_date or rec.pricelist_id.expiry_date >= str(
-                                        date.today()):
+                                if not rec.pricelist_id.expiry_date or rec.pricelist_id.expiry_date >= date.today():
                                     prices_all |= rec.pricelist_id.customer_product_price_ids
 
                             prices_all = prices_all.filtered(lambda r: r.product_id.id == item.id)
@@ -1253,6 +1304,8 @@ class SaleOrderLine(models.Model):
                                                                                                               uom)
                         similar_product_price += "</table>"
                         self.similar_product_price = similar_product_price
+                    else:
+                        self.similar_product_price = False
         return res
 
     @api.depends('product_uom_qty', 'qty_delivered')
@@ -1284,7 +1337,7 @@ class SaleOrderLine(models.Model):
                         line.lst_price = uom_price[0].price
                         if line.product_id.cost:
                             line.working_cost = uom_price[0].cost
-            if line.is_delivery and line.order_id.carrier_id and line.order_id.carrier_id.delivery_type not in ['based_on_rule', 'fixed']:
+            if line.is_delivery and line.order_id.carrier_id and line.order_id.carrier_id.delivery_type not in ['base_on_rule', 'fixed']:
                 line.working_cost = line.order_id.delivery_cost
                 line.lst_price = line.order_id.delivery_price
 
@@ -1465,11 +1518,25 @@ class SaleOrderLine(models.Model):
                         raise ValidationError(_('You are not allowed to reduce price below product cost. Contact your sales Manager.'))
                     if line.price_unit >= line.working_cost and vals.get('price_unit') < line.working_cost:
                         raise ValidationError(_('You are not allowed to reduce price below product cost. Contact your sales Manager.'))
+
         res = super(SaleOrderLine, self).write(vals)
         for line in self:
             if vals.get('price_unit') and line.order_id.state == 'sale':
                 line.update_price_list()
         return res
+
+    @api.multi
+    def _prepare_procurement_values(self, group_id=False):
+        """ Prepare specific key for moves or other components that will be created from a stock rule
+        comming from a sale order line. This method could be override in order to add other custom key that could
+        be used in move/po creation.
+        """
+        values = super(SaleOrderLine, self)._prepare_procurement_values(group_id)
+        self.ensure_one()
+        values.update({
+            'date_planned': self.order_id.release_date
+        })
+        return values
 
     @api.multi
     def _action_launch_stock_rule(self):
@@ -1611,7 +1678,7 @@ class SaleOrderLine(models.Model):
                     line.profit_margin = 0.0
                     if line.is_delivery and line.order_id.carrier_id:
                         price_unit = line.order_id.carrier_id.average_company_cost
-                        if line.order_id.carrier_id.delivery_type not in ['fixed', 'based_on_rule']:
+                        if line.order_id.carrier_id.delivery_type not in ['fixed', 'base_on_rule']:
                             price_unit = line.order_id.delivery_cost
                         line.profit_margin = line.price_subtotal - price_unit
                 else:
@@ -1669,7 +1736,8 @@ class SaleOrderLine(models.Model):
 
             msg, product_price, price_from = self.calculate_customer_price()
             warn_msg += msg and "\n\n{}".format(msg)
-
+            if self.product_id.sale_delay > 0:
+                warn_msg += 'product: {} takes {} days to be procured.'.format(self.product_id.name, self.product_id.sale_delay)
             if warn_msg:
                 res.update({'warning': {'title': _('Warning!'), 'message': warn_msg}})
 
@@ -1754,7 +1822,7 @@ class SaleOrderLine(models.Model):
         """
         prices_all = self.env['customer.product.price']
         for rec in self.order_id.partner_id.customer_pricelist_ids:
-            if not rec.pricelist_id.expiry_date or rec.pricelist_id.expiry_date >= str(date.today()):
+            if not rec.pricelist_id.expiry_date or rec.pricelist_id.expiry_date >= date.today():
                 prices_all |= rec.pricelist_id.customer_product_price_ids
 
         prices_all = prices_all.filtered(

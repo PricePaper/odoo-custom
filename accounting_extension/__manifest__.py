@@ -16,6 +16,7 @@ User can choose invoice against payments
     'images': [],
     'data': [
             "security/ir.model.access.csv",
+            "data/data.xml",
             "wizard/add_new_cash_collected_line_wizard.xml",
             "views/payment_term_view.xml",
             "views/account_payment_view.xml",

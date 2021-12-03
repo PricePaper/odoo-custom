@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from lxml import etree
+
 from odoo import fields, models, api, _
 from odoo.exceptions import ValidationError, UserError
+from odoo.osv.orm import setup_modifiers
 
 
 class ResPartner(models.Model):
@@ -103,6 +106,20 @@ class ResPartner(models.Model):
         return res
 
     @api.model
+    def fields_view_get(self, view_id=None, view_type=False, toolbar=False, submenu=False):
+        res = super(ResPartner, self).fields_view_get(view_id=view_id, view_type=view_type, toolbar=toolbar, submenu=submenu)
+        if self.env.user._is_admin() and self.user_has_groups('base.group_no_one'):
+            doc = etree.XML(res['arch'])
+            if view_type == 'form':
+                nodes = doc.xpath("//notebook/page[@name='sales_purchases']/group/group/field[@name='customer_code']")
+                for node in nodes:
+                    node.set('readonly', '0')
+                    setup_modifiers(node, res['fields']['customer_code'])
+                    res['arch'] = etree.tostring(doc)
+                return res
+        return res
+
+    @api.model
     def name_search(self, name='', args=None, operator='ilike', limit=100):
         """
         overriden to display the search result
@@ -142,7 +159,7 @@ class ResPartner(models.Model):
 
     @api.constrains('customer_code')
     def check_partner_code(self):
-        if self.search([('customer_code', '=ilike', self.customer_code), ('id', '!=', self.id)]):
+        if self.sudo().search(['|', ('active', '=', True), ('active', '=', False), ('customer_code', '=ilike', self.customer_code), ('id', '!=', self.id)]):
             raise ValidationError(_('Partner with same Partner code already exists.'))
 
     @api.model
@@ -157,7 +174,7 @@ class ResPartner(models.Model):
         if vals.get('is_company', False):
             if not vals.get('customer_code', False):
                 prefix = vals.get('name').replace(" ", "")[0:3].upper()
-                customer_codes = self.env['res.partner'].search([('customer_code', 'ilike', prefix)]).mapped('customer_code')
+                customer_codes = self.env['res.partner'].sudo().search(['|', ('active', '=', True), ('active', '=', False), ('customer_code', 'ilike', prefix)]).mapped('customer_code')
                 partner_codes = [code for code in customer_codes if code[0:3] == prefix and len(code) < 8]
                 count = 1
                 while True:
@@ -188,6 +205,8 @@ class ResPartner(models.Model):
                 existing_defaults.write({'default_shipping':False})
                 result.default_shipping = True
         return result
+
+
 
     @api.multi
     def write(self, vals):

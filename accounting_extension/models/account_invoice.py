@@ -8,10 +8,35 @@ from datetime import datetime
 class AccountMoveLine(models.Model):
     _inherit = 'account.move.line'
 
-    def remove_active_discount(self):
-        self.remove_move_reconcile()
-        self.move_id.button_cancel()
-        self.move_id.unlink()
+    @api.multi
+    def get_related_discount_lines(self, invoice_id=False):
+        discount_lines = self.env['account.move.line']
+        for account_move_line in self:
+            payment = account_move_line.payment_id
+            if payment and payment.discount_journal_id:
+                discount_journal = payment.discount_journal_id
+                discount_lines |= discount_journal.line_ids.filtered(lambda r: r.account_id.user_type_id.type in ('receivable', 'payable'))
+            elif invoice_id and payment:
+                payment_line = payment.payment_lines.filtered(lambda r: r.invoice_id.id == invoice_id)
+                discount_lines |= payment_line.discount_journal_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type in ('receivable', 'payable'))
+        return discount_lines
+
+    @api.multi
+    def remove_move_reconcile(self):
+        invoice_id = self._context.get('invoice_id')
+        discount_lines = self.get_related_discount_lines(invoice_id)
+        res = super(AccountMoveLine, (self | discount_lines)).remove_move_reconcile()
+        discount_lines.mapped('move_id').button_cancel()
+        discount_lines.mapped('move_id').unlink()
+        return res
+
+    @api.multi
+    def remove_active_discount(self, invoice_id=False):
+        for account_move_line in self:
+            discount_lines = account_move_line.get_related_discount_lines(invoice_id) | account_move_line
+            discount_lines.remove_move_reconcile()
+            discount_lines.mapped('move_id').button_cancel()
+            discount_lines.mapped('move_id').unlink()
         return True
 
 

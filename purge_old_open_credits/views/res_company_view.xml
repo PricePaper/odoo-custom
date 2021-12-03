@@ -14,5 +14,26 @@
             </field>
         </field>
     </record>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+            <field name="name">res.config.settings.view.form.purchase.inherit.accounting.extension</field>
+            <field name="model">res.config.settings</field>
+            <field name="inherit_id" ref="account.res_config_settings_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//div[@data-key='account']/div[4]" position="inside">
+                    <div class="col-lg-6 o_setting_box" id="customer_discount_limit">
+                        <div class="o_setting_left_pane"/>
+                        <div class="o_setting_right_pane">
+                            <span class="o_form_label">Old Open Credit Purge</span>
+                            <div class="text-muted">
+                                Credit Purge Account.
+                            </div>
+                            <div class="content-group mt16">
+                                <field name="credit_purge_account" class="text-center oe_inline" />
+                            </div>
+                        </div>
+                    </div>
+                </xpath>
+            </field>
+        </record>
 
 </odoo>

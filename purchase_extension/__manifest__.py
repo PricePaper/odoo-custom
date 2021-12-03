@@ -14,6 +14,7 @@ Custom module implemented for Purchase extension.
         'data/data.xml',
         'views/assets.xml',
         'wizard/view_sale_history_po_views.xml',
+        'wizard/cost_discrepancy_report_template.xml',
         'wizard/vendor_product_report_wizard.xml',
         'wizard/discount_check_generate.xml',
         'wizard/update_vendor_pricelist_view.xml',

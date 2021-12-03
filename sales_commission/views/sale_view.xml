@@ -1,5 +1,18 @@
 <odoo>
     <data>
+      <record id="view_sales_order_filter_price_paper" model="ir.ui.view">
+          <field name="name">sale.order.search.inherit.price.paper</field>
+          <field name="model">sale.order</field>
+          <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+          <field name="arch" type="xml">
+              <xpath expr="//field[@name='user_id']" position="attributes">
+                  <attribute name="string">'Created by'</attribute>
+              </xpath>
+              <xpath expr="//field[@name='user_id']" position="after">
+                  <field name="sales_person_ids"/>
+              </xpath>
+          </field>
+      </record>
         <record id="sale_order_tree_inherit_commission" model="ir.ui.view">
             <field name="name">sale.order.tree.inherit.commission</field>
             <field name="model">sale.order</field>
@@ -10,6 +23,7 @@
                 </field>
                 <field name="user_id" position="after">
                     <field name="sales_person_ids" widget="many2many_tags"/>
+                    <field name="commission_rule_ids" invisible='1'/>
                 </field>
             </field>
         </record>
@@ -32,7 +46,11 @@
             <field name="inherit_id" ref="sale.view_order_form" />
             <field name="arch" type="xml">
                 <field name='payment_term_id' position="before">
-                    <field name="sales_person_ids" widget="many2many_tags" readonly="1"/>
+                    <field name="sales_person_ids" widget="many2many_tags"
+                          domain="[('is_sales_person','=',True)]"
+                          attrs="{'readonly': [('state', 'not in', ['draft', 'sent'])]}"
+                          force_save="1"/>
+                    <field name="commission_rule_ids" invisible='1' force_save="1"/>
                 </field>
             </field>
         </record>

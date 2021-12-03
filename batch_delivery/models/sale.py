@@ -3,6 +3,7 @@
 import json
 
 from odoo import api, fields, models, _
+from odoo.exceptions import ValidationError
 
 
 class SaleOrder(models.Model):
@@ -10,11 +11,35 @@ class SaleOrder(models.Model):
 
     have_prive_lock = fields.Boolean(compute='_compute_price_lock')
     delivery_date = fields.Date(string="Delivery Date")
+    cancel_reason = fields.Text(string='Cancel Reason')
 
     @api.depends('order_line.price_lock')
     def _compute_price_lock(self):
         for rec in self:
             rec.have_prive_lock = any(rec.order_line.mapped('price_lock'))
+
+    @api.multi
+    def action_cancel(self):
+        for order in self:
+            if not self._context.get('from_cancel_wizard'):
+                if order.invoice_ids and order.invoice_ids.filtered(lambda r:r.state in ('open', 'paid')):
+                    raise ValidationError(_('Cannot perform this action, invoice not in draft state'))
+                if order.picking_ids and order.picking_ids.filtered(lambda r:r.state in ('in_transit', 'done')):
+                    if not self.env.user.has_group('account.group_account_manager') and not self.env.user.has_group('sales_team.group_sale_manager'):
+                        raise ValidationError(_('You dont have permissions to cancel a SO with DO in transit. Only Sales Manager and Accounting adviser have the permission.'))
+                    view_id = self.env.ref('batch_delivery.view_so_cancel_reason_wiz').id
+                    return {
+                        'name': _('Sale Order Cancel Reason'),
+                        'view_type': 'form',
+                        'view_mode': 'form',
+                        'res_model': 'so.cancel.reason',
+                        'view_id': view_id,
+                        'type': 'ir.actions.act_window',
+                        'target': 'new'
+                    }
+
+        return super(SaleOrder, self).action_cancel()
+
 
 
 SaleOrder()

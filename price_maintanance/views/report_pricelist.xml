@@ -20,8 +20,13 @@
                       border-top: 1px solid black;
                   }
                </style>
-               <div class="col-12 text-left">
-                    <strong>Valid-Upto : </strong>
+               <div class="col-6 text-left">
+                    <strong>Date Prepared : </strong>
+                    <span t-esc="datetime.datetime.now().strftime('%m/%d/%Y')"></span>
+                    <!-- <span t-esc="context_timestamp(datetime.date.today()).strftime('%Y-%m-%d')"/> -->
+               </div>
+               <div class="col-6 text-left">
+                    <strong>Valid Until : </strong>
                     <span t-field="o.expiry_date"/>
                </div>
                <div class="col-12 text-left">

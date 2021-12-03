@@ -70,6 +70,18 @@
             </field>
         </record>
 
+        <record id="payment_search_inherit_accounting_extension" model="ir.ui.view">
+            <field name="name">inherited search view for account.payment</field>
+            <field name="model">account.payment</field>
+            <field name="inherit_id" ref="account.view_account_payment_search"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <field name="batch_payment_id"/>
+                </xpath>
+
+            </field>
+        </record>
 
         <record id="accounting_extension_view_payment_form" model="ir.ui.view">
             <field name="name">Account Payment Form</field>
@@ -78,10 +90,14 @@
             <field name="arch" type="xml">
 
                 <field name="communication" position="after">
-                    <field name="payment_reference" readonly="0"/>
+                    <field name="payment_reference" readonly="1"/>
+                    <field name="batch_payment_id" attrs="{'readonly': [('state', '!=', 'cancelled')], 'invisible':[('batch_payment_id','=', False)]}" groups="account.group_account_manager"/>
                 </field>
                  <xpath expr="//button[@name='cancel']" position="attributes">
                     <attribute name="attrs">{'invisible': [('state', 'in', ['cancelled'])]}</attribute>
+                </xpath>
+                <xpath expr="//sheet/group/group[2]" position="after">
+                    <field name="invoice_ids" readonly="1" attrs="{'invisible':[('invoice_ids','=', [])]}"/>
                 </xpath>
                 <xpath expr="/form/sheet" position="inside">
                     <field name="has_payment_lines" invisible="1"/>

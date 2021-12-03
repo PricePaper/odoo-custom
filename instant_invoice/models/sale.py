@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import models, fields, api
+from odoo.exceptions import Warning
 
 
 class SaleOrder(models.Model):
@@ -21,6 +22,8 @@ class SaleOrder(models.Model):
     @api.multi
     def action_quick_sale(self):
         for rec in self.sudo():
+            if all(line.product_id.type == 'service' for line in rec.order_line):
+                raise Warning("You cannot confirm a quick Sales Order with only having Service products.")
             rec.quick_sale = True
             res = rec.action_confirm()
             if res and res != True and res.get('context') and res.get('context').get('warning_message'):
@@ -71,8 +74,6 @@ class SaleOrder(models.Model):
                     order.action_quick_sale()
             else:
                 order.hold_state = 'price_hold'
-
-
 
     @api.multi
     def action_release_price_hold(self):

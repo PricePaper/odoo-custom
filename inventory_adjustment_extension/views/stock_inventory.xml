@@ -11,6 +11,19 @@
                 <xpath expr="//notebook/page[1]/field[@name='line_ids']/tree/field[@name='product_uom_id']" position="attributes">
                     <attribute name="style">width:150px;</attribute>
                 </xpath>
+                <xpath expr="//notebook/page[1]/field[@name='line_ids']/tree/field[@name='location_id']" position="attributes">
+                    <attribute name="style">width:150px;</attribute>
+                </xpath>
+            </field>
+        </record>
+        <record id="view_inventory_form_inherit_pricepaper_activity" model="ir.ui.view">
+            <field name="name">stock.inventory.form.inherit</field>
+            <field name="model">stock.inventory</field>
+            <field name="inherit_id" ref="stock_inventory_chatter.view_inventory_form"/>
+            <field name="arch" type="xml">
+                <field name="message_follower_ids" position="after">
+                    <field name="activity_ids" widget="mail_activity"/>
+                </field>
             </field>
         </record>
     </data>

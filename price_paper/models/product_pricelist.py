@@ -14,7 +14,7 @@ class ProductPricelist(models.Model):
                             selection=[('customer', 'Customer'), ('shared', 'Shared'), ('competitor', 'Competitor')])
     customer_pricelist_ids = fields.One2many('customer.pricelist', 'pricelist_id')
     customer_product_price_ids = fields.One2many('customer.product.price', 'pricelist_id')
-    expiry_date = fields.Date('Valid Upto')
+    expiry_date = fields.Date('Valid Until')
     price_lock = fields.Boolean(string='Price Change Lock', default=False)
     lock_expiry_date = fields.Date(string='Lock Expiry date')
     partner_ids = fields.Many2many('res.partner', string='Customers', compute='_compute_partner', store=True)
