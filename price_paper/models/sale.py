@@ -159,7 +159,11 @@ class SaleOrder(models.Model):
             sale_order.is_low_price = False
             sale_order.release_price_hold = False
             sale_order.hold_state = False
-
+            po_state = sale_order.sudo().order_line.mapped('move_ids.created_purchase_line_id.order_id.state')
+            if 'purchase' in po_state or 'done' in po_state or 'received' in po_state:
+                raise UserError(_('You can not cancel this order because there is a purchase order is already processed.'))
+            else:
+                sale_order.sudo().order_line.mapped('move_ids.created_purchase_line_id.order_id').button_cancel()
             if sale_order.storage_contract:
                 sale_order.order_line.mapped('purchase_line_ids.order_id').button_cancel()
             else:
@@ -512,7 +516,7 @@ class SaleOrder(models.Model):
         if not self._context.get('from_import'):
             self.check_payment_term()
             for order in self:
-                if 'state' not in vals or 'state' in vals and vals['state'] != 'done':
+                if order.state != 'done' and ('state' not in vals or 'state' in vals and vals['state'] != 'done'):
                     if order.carrier_id:
                         order.adjust_delivery_line()
                     else:
@@ -1278,8 +1282,7 @@ class SaleOrderLine(models.Model):
 
                             prices_all = self.env['customer.product.price']
                             for rec in self.order_id.partner_id.customer_pricelist_ids:
-                                if not rec.pricelist_id.expiry_date or rec.pricelist_id.expiry_date >= str(
-                                        date.today()):
+                                if not rec.pricelist_id.expiry_date or rec.pricelist_id.expiry_date >= date.today():
                                     prices_all |= rec.pricelist_id.customer_product_price_ids
 
                             prices_all = prices_all.filtered(lambda r: r.product_id.id == item.id)
@@ -1301,6 +1304,8 @@ class SaleOrderLine(models.Model):
                                                                                                               uom)
                         similar_product_price += "</table>"
                         self.similar_product_price = similar_product_price
+                    else:
+                        self.similar_product_price = False
         return res
 
     @api.depends('product_uom_qty', 'qty_delivered')

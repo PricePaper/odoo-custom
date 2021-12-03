@@ -18,5 +18,17 @@
             </field>
         </record>
 
+        <record id="batch_payment_common_view_form_inherit_accounting_extension" model="ir.ui.view">
+            <field name="name">batch.common.view.form.inherit.accounting.extension</field>
+            <field name="model">batch.payment.common</field>
+            <field name="inherit_id" ref="batch_delivery.batch_payment_common_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='cash_collected_lines']//tree/field[@name='discount']" position="after">
+                   <field name="discount_amount"/>
+                </xpath>
+
+            </field>
+        </record>
+
     </data>
 </odoo>
