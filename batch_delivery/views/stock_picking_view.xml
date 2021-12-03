@@ -128,7 +128,7 @@
             <field name="name">Delivery Orders</field>
             <field name="res_model">stock.picking</field>
             <field name="view_mode">kanban,tree</field>
-            <field name="domain">['|', ('batch_id.state', 'in', ('draft', 'in_progress')), ('batch_id', '=', False), ('state','in', ['confirmed', 'assigned', 'in_transit']), ('picking_type_code', '=', 'outgoing')]</field>
+            <field name="domain">['|', ('batch_id.state', 'in', ('draft', 'in_progress', 'in_truck')), ('batch_id', '=', False), ('state','in', ['confirmed', 'assigned', 'in_transit']), ('picking_type_code', '=', 'outgoing')]</field>
             <field name="context">{'search_default_truck_deliveries': 1}</field>
             <field name="search_view_id" ref="stock.view_picking_internal_search"/>
 

@@ -11,15 +11,17 @@
                 <button name="confirm_picking" position="before">
 
                     <button name="view_pending_products"
-                            string="Pending Products" type="object" class="oe_highlight"/>
+                            string="Pending Products" type="object" class="oe_highlight"
+                            attrs="{'invisible': [('state', '!=', 'draft')]}"/>
                     <xpath expr="//button[@name='print_picking']" position="move"/>
                     <button name="print_master_pickticket" string="Print Master PickTicket"
-                            type="object" class="oe_highlight" attrs="{'invisible': [('state', '=', 'draft')]}"/>
+                            type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'draft')]}"/>
                     <button name="print_master_late_order_pickticket" string="Print Master Late Order PickTicket"
                             type="object" class="oe_highlight"
-                            attrs="{'invisible': [('have_late_order', '=', False)]}"/>
+                            attrs="{'invisible': ['|', ('have_late_order', '=', False), ('state', '=', 'done')]}"/>
                     <button name="print_product_labels" string="Print Product Labels" type="object"
-                            class="oe_highlight"/>
+                            class="oe_highlight"
+                            attrs="{'invisible': [('state', '!=', 'in_truck')]}"/>
                 </button>
 
                 <button name="confirm_picking" position="after">
@@ -31,28 +33,28 @@
                     <button name="print_invoice_report"
                             string="Print Invoices" type="object"
                             class="oe_highlight"
-                            attrs="{'invisible': ['|', ('invoice_ids', '=', []), ('state', 'in', ('draft', 'cancel'))]}"/>
+                            attrs="{'invisible': ['|', ('invoice_ids', '=', []), ('state', 'not in', ['in_progress'])]}"/>
                     <button name="print_driver_spreadsheet" string="Print Drivers Document" type="object"
                             class="oe_highlight"
-                            attrs="{'invisible': ['|', ('invoice_ids', '=', []), ('state', 'in', ('draft', 'cancel'))]}"/>
-                    <button name="set_in_truck" string="Move to In Progress"
+                            attrs="{'invisible': ['|', ('invoice_ids', '=', []), ('state', 'not in', ['in_progress'])]}"/>
+                    <button name="set_in_truck" string="Move to In Progres"
                             type="object" class="oe_highlight"
-                            attrs="{'invisible': [('state', 'not in', ['in_progress'])]}"/>
-                    <button name="set_in_progress" string="Move to Running"
+                            states='draft'/>
+                    <button name="set_to_draft" string="Move to Draft"
                             type="object"
-                            attrs="{'invisible': [('state', 'not in', ['in_truck'])]}"/>
+                            states='in_truck'/>
                 </button>
 
                 <button name="print_picking" position="attributes">
                     <attribute name="string">Print Pick Tickets</attribute>
-                </button>
-                <button name="done" position="attributes">
                     <attribute name="states">in_truck</attribute>
                 </button>
-
+                <button name="confirm_picking" position="attributes">
+                    <attribute name="states">in_truck</attribute>
+                </button>
                 <button name="cancel_picking" position="attributes">
                     <attribute name="confirm">Are you sure want to cancel the batch?</attribute>
-                    <attribute name="states">in_progress,draft</attribute>
+                    <attribute name="states">draft</attribute>
                 </button>
 
                 <xpath expr="//field[@name='picking_ids']/tree//field[@name='name']" position="before">
