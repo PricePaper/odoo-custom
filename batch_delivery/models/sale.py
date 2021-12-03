@@ -59,13 +59,13 @@ class SaleOrderLine(models.Model):
         for line in self:
             if 'product_uom_qty' in vals:
                 precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
+                batches = line.mapped('move_ids').filtered(lambda r: r.state not in ('cancel', 'done')).mapped('picking_id').mapped('batch_id')
+                if batches and any(state != 'draft' for state in batches.mapped('state')):
+                    raise ValidationError(_('Batch is already in In Progress state can not change the qty.'))
                 lines = self.filtered(
                     lambda r: r.state == 'sale' and not r.is_expense and float_compare(r.product_uom_qty, vals['product_uom_qty'], precision_digits=precision) == 1)
                 for order_line in lines:
                     moves = order_line.move_ids.filtered(lambda r: r.state not in ('cancel', 'done'))
-                    batches = moves.mapped('picking_id').mapped('batch_id')
-                    if batches and any(state == 'in_truck' for state in batches.mapped('state')):
-                        raise ValidationError(_('Batch is already in In Progress state can not decrease the qty.'))
                     if moves and len(moves) == 1:
                         moves._do_unreserve()
                         moves.product_uom_qty = vals['product_uom_qty']

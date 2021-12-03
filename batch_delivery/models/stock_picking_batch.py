@@ -173,14 +173,11 @@ class StockPickingBatch(models.Model):
 
     @api.multi
     def set_in_truck(self):
-        for picking in self.picking_ids.filtered(lambda rec: rec.state not in ['cancel']):
-            if picking.sale_id and picking.sale_id.invoice_status == 'to invoice' or not picking.is_invoiced:
-                raise UserError(_('Please create invoices for delivery order %s, to continue.') % (picking.name))
         self.write({'state': 'in_truck'})
 
     @api.multi
-    def set_in_progress(self):
-        self.write({'state': 'in_progress'})
+    def set_to_draft(self):
+        self.write({'state': 'draft'})
 
 
     @api.multi
