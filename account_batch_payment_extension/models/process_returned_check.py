@@ -64,6 +64,8 @@ class ProcessReturnedCheck(models.Model):
             invoice = payment.mapped('invoice_ids')
             if not payment:
                 raise UserError("Payment is not selected")
+            if abs(rec.amount) != sum(payment.mapped('amount')):
+                raise UserError("Amount mismatch.")
             for pay in payment:
                 pay.write({'old_invoice_ids': [(6, 0, pay.reconciled_invoice_ids.ids)]})
                 pay.mapped('move_line_ids').remove_move_reconcile()
