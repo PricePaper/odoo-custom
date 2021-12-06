@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="accounting_batch_extension_view_account_payment" model="ir.ui.view">
+            <field name="name">Account Payment</field>
+            <field name="model">account.payment</field>
+            <field name="inherit_id" ref="account.view_account_payment_invoice_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='communication']" position="after">
+                    <field name="is_return_cleared" readonly="1" invisible='1'/>
+                    <field name="old_invoice_ids" invisible='1'/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

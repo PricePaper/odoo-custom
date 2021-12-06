@@ -16,6 +16,15 @@ class AccountPayment(models.Model):
         self.set_check_amount_in_words()
         return super(AccountPayment, self).print_checks()
 
+    @api.multi
+    def name_get(self):
+        result = []
+        if self._context.get('from_return_check_process', False):
+            for payment in self:
+                result.append((payment.id, '%s ( %s )' % (payment.name, payment.amount)))
+            return result
+        return super(AccountPayment, self).name_get()
+
 
 AccountPayment()
 
