@@ -60,7 +60,6 @@ class SaleOrderLine(models.Model):
             if 'product_uom_qty' in vals:
                 precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
                 batches = line.mapped('move_ids').filtered(lambda r: r.state not in ('cancel', 'done')).mapped('picking_id').mapped('batch_id')
-                print(batches)
                 if batches and any(state != 'draft' for state in batches.sudo().mapped('state')):
                     raise ValidationError(_('Batch is already in In Progress state can not change the qty.'))
                 lines = self.filtered(
