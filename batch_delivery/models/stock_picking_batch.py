@@ -174,10 +174,16 @@ class StockPickingBatch(models.Model):
     @api.multi
     def set_in_truck(self):
         self.write({'state': 'in_truck'})
+        sale_orders = self.mapped('picking_ids').mapped('sale_id')
+        if sale_orders:
+            sale_orders.write({'batch_warning': 'This Sales Order is already being processed for shipment', 'state': 'done'})
 
     @api.multi
     def set_to_draft(self):
         self.write({'state': 'draft'})
+        sale_orders = self.mapped('picking_ids').mapped('sale_id')
+        if sale_orders:
+            sale_orders.write({'batch_warning': '', 'state': 'sale'})
 
 
     @api.multi

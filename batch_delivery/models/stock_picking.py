@@ -308,17 +308,9 @@ class StockPicking(models.Model):
     def write(self, vals):
         for picking in self:
 
-            #            in_transit = vals.get('in_transit', False)
-            #            if in_transit:
-            #                historical_picking = self.env['stock.picking'].search([('route_id', '!=', False), ('state', '=', 'done'), ('picking_type_id.code', '=', 'outgoing'), ('partner_id', '=', picking.partner_id.id)], order='create_date desc', limit=1)
-
-            #                route_id = historical_picking and historical_picking.route_id and historical_picking.route_id.id or False
-            #                if route_id:
-            #                    vals.update({'route_id': route_id})
             if 'route_id' in vals.keys() and picking.batch_id and  picking.batch_id.state in ('done', 'no_payment', 'paid'):
                 error = "Batch is already in done state. You can not remove the picking"
                 raise UserError(_(error))
-
             route_id = vals.get('route_id', False)
             if route_id:
                 BatchOB = self.env['stock.picking.batch']
@@ -326,20 +318,18 @@ class StockPicking(models.Model):
                 if batch:
                     picking.action_make_transit()
                 elif not batch:
-                    batch = BatchOB.search([('state', '=', 'draft'), ('route_id', '=', route_id)], limit=1)
+                    batch = BatchOB.search([('state', 'in', ('draft', 'in_truck')), ('route_id', '=', route_id)], limit=1)
 
                 if batch:
-                    # picking.action_make_transit()
                     picking.sale_id.write({'delivery_date': batch.date})
+                    if batch.state in ('in_truck', 'in_progress'):
+                        picking.mapped('sale_id').write({'batch_warning': 'This Sales Order is already being processed for shipment', 'state': 'done'})
                     if picking.is_invoiced:
                         invoice = picking.sale_id.invoice_ids.filtered(lambda rec: picking in rec.picking_ids)
                         invoice.write({'date_invoice': batch.date})
 
                 if not batch:
                     batch = BatchOB.create({'route_id': route_id})
-                # if picking.state not in ('assigned', 'done'):
-                #     error = "The requested operation cannot be processed because all quantities are not available for picking %s. Please assign quantities for this picking." %(picking.name)
-                #     raise UserError(_(error))
                 picking.batch_id = batch
 
                 vals['is_late_order'] = batch.state == 'in_progress'
@@ -349,6 +339,7 @@ class StockPicking(models.Model):
             if 'route_id' in vals.keys() and not vals.get('route_id', False):
                 picking.mapped('move_lines').write({'is_transit': False})
                 vals.update({'batch_id': False, 'is_late_order': False, 'is_transit': False})
+                picking.mapped('sale_id').write({'batch_warning': '', 'state': 'sale'})
         res = super(StockPicking, self).write(vals)
         return res
 

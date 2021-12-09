@@ -14,6 +14,7 @@ class SaleOrder(models.Model):
     have_prive_lock = fields.Boolean(compute='_compute_price_lock')
     delivery_date = fields.Date(string="Delivery Date")
     cancel_reason = fields.Text(string='Cancel Reason')
+    batch_warning = fields.Text(string='Shipment Progress wrarning Message', copy=False)
 
     @api.depends('order_line.price_lock')
     def _compute_price_lock(self):
@@ -59,9 +60,6 @@ class SaleOrderLine(models.Model):
         for line in self:
             if 'product_uom_qty' in vals:
                 precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
-                batches = line.mapped('move_ids').filtered(lambda r: r.state not in ('cancel', 'done')).mapped('picking_id').mapped('batch_id')
-                if batches and any(state != 'draft' for state in batches.sudo().mapped('state')):
-                    raise ValidationError(_('Batch is already in In Progress state can not change the qty.'))
                 lines = self.filtered(
                     lambda r: r.state == 'sale' and not r.is_expense and float_compare(r.product_uom_qty, vals['product_uom_qty'], precision_digits=precision) == 1)
                 for order_line in lines:

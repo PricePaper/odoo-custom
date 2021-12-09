@@ -409,9 +409,6 @@ class StockMove(models.Model):
         for move in self:
             # qty_available always shows the quanity in requested (UOM).
             reserved_qty = move.reserved_availability
-            if move.picking_id.mapped('batch_id'):
-                if move.picking_id.batch_id.state != 'in_truck':
-                    raise UserError(_('Batch is not in "Draft" state, can not adjust the qty.'))
             move._do_unreserve()
             available_qty = move.qty_available
             if available_qty <= 0 and move.qty_update > 0:
