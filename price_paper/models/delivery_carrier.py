@@ -9,6 +9,7 @@ class DeliveryCarrier(models.Model):
     average_company_cost = fields.Float(string='Average Company Cost',
                                         help='The Average amount that costs for the company to make this delivery.',
                                         default=80.00)
+    min_profit = fields.Float('Minimum Profit')
 
     def rate_shipment(self, order):
         ''' Compute the price of the order shipment

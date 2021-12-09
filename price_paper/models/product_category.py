@@ -13,7 +13,7 @@ class ProductCategory(models.Model):
     )
     sc_stock_liability_account_id = fields.Many2one(
         'account.account',
-        string="SC stock liability account"
+        string="SC Stock Liability Account"
     )
 
 

@@ -21,7 +21,8 @@ class SaleCommission(models.Model):
     invoice_type = fields.Selection(
         selection=[('out_invoice', 'Invoice'), ('out_refund', 'Refund'), ('draw', 'Weekly Draw'),
                    ('bounced_cheque', 'Cheque Bounce'), ('cancel', 'Invoice Cancelled'),
-                   ('aging', 'Commission Aging'), ('unreconcile', 'Invoice Unreconciled')], string='Type')
+                   ('aging', 'Commission Aging'), ('unreconcile', 'Invoice Unreconciled'),
+                   ('bounced_reverse', 'Cheque Bounce Reverse')], string='Type')
     invoice_amount = fields.Float(string='Amount')
     date_invoice = fields.Date(related='invoice_id.date_invoice', string="Invoice Date", readonly=True, store=True)
     sale_id = fields.Many2one('sale.order', string="Sale Order")
@@ -39,6 +40,7 @@ class SaleCommission(models.Model):
         po_line.move_ids.write({'sale_line_id': sc_line.id, 'is_storage_contract': True})
         po_line.invoice_lines.write({'is_storage_contract': True})
         sc_line.order_id.write({'state': 'released', 'sc_po_done': True})
+        return True
 
     def find_invoices(self, offset=0, limit=100):
         print(limit)

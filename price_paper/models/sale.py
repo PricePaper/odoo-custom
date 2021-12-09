@@ -515,12 +515,12 @@ class SaleOrder(models.Model):
 
         if not self._context.get('from_import'):
             self.check_payment_term()
-            for order in self:
-                if order.state != 'done' and ('state' not in vals or 'state' in vals and vals['state'] != 'done'):
-                    if order.carrier_id:
-                        order.adjust_delivery_line()
-                    else:
-                        order._remove_delivery_line()
+            # for order in self:
+            #     if order.state != 'done' and ('state' not in vals or 'state' in vals and vals['state'] != 'done'):
+            #         if order.carrier_id:
+            #             order.adjust_delivery_line()
+            #         else:
+            #             order._remove_delivery_line()
 
         if 'sales_person_ids' in vals and vals['sales_person_ids']:
             self.message_subscribe(partner_ids=vals['sales_person_ids'][0][-1])
@@ -702,8 +702,10 @@ class SaleOrder(models.Model):
             for order_line in order.order_line.filtered(lambda r: not r.storage_contract_line_id):
                 if order_line.price_unit < order_line.working_cost and not (
                         'rebate_contract_id' in order_line and order_line.rebate_contract_id):
-                    msg1 = '[%s]%s ' % (order_line.product_id.default_code,
-                                        order_line.product_id.name) + "Unit Price is less than  Product Cost Price"
+                    msg1 += '[%s]%s ' % (order_line.product_id.default_code,
+                                        order_line.product_id.name) + "Unit Price is less than  Product Cost Price.\n"
+            if order.carrier_id and order.gross_profit < order.carrier_id.min_profit:
+                msg1 += 'Order profit is less than mininmum profit'
 
             order.credit_warning = msg
             order.low_price_warning = msg1
@@ -716,7 +718,7 @@ class SaleOrder(models.Model):
         for order in self:
             order.write({'is_creditexceed': False, 'ready_to_release': True})
             order.message_post(body="Credit Team Approved")
-            if order.release_price_hold:
+            if order.release_price_hold or not order.check_low_price():
                 order.hold_state = 'release'
                 order.action_confirm()
             else:
@@ -730,7 +732,7 @@ class SaleOrder(models.Model):
         for order in self:
             order.write({'is_low_price': False, 'release_price_hold': True})
             order.message_post(body="Sale Team Approved")
-            if order.ready_to_release:
+            if order.ready_to_release or not order.check_credit_limit():
                 order.hold_state = 'release'
                 order.action_confirm()
             else:
@@ -762,7 +764,7 @@ class SaleOrder(models.Model):
                 order.message_post(body=msg)
                 return msg
             else:
-                order.write({'is_creditexceed': False, 'ready_to_release': True})
+                # order.write({'is_creditexceed': False, 'ready_to_release': True})
                 return ''
 
     def check_low_price(self):
@@ -785,7 +787,7 @@ class SaleOrder(models.Model):
                 order.message_post(body=msg1)
                 return msg1
             else:
-                order.write({'is_low_price': False, 'release_price_hold': True})
+                # order.write({'is_low_price': False, 'release_price_hold': True})
                 return ''
 
     @api.onchange('payment_term_id')

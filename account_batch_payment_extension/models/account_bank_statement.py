@@ -7,6 +7,8 @@ from odoo.exceptions import UserError
 class AccountBankStatementLine(models.Model):
     _inherit = "account.bank.statement.line"
 
+    is_return_cleared = fields.Boolean('Return cleared')
+
     def process_reconciliation(self, counterpart_aml_dicts=None, payment_aml_rec=None, new_aml_dicts=None):
 
         counterpart_moves = super().process_reconciliation(counterpart_aml_dicts=counterpart_aml_dicts, payment_aml_rec=payment_aml_rec, new_aml_dicts=new_aml_dicts)
@@ -46,15 +48,30 @@ class AccountBankStatementLine(models.Model):
                 if cheque_no and len(cheque_no) > 1:
                     cheque_no = cheque_no[1].split(' ', 1)[0]
                     cheque_no_strip = cheque_no.lstrip('0')
-                    payment = self.env['account.payment'].search(['|', ('communication', '=', cheque_no_strip), ('communication', '=', cheque_no)], limit=1)
-                    if payment:
-                        invoice = payment.invoice_ids
-                        payment.move_line_ids.remove_move_reconcile()
-                        reconcile_lines = (payment.move_line_ids | counterpart_moves.line_ids)
-                        reconcile_lines = reconcile_lines.filtered(lambda r: not r.reconciled and r.account_id.internal_type in ('payable', 'receivable'))
-                        reconcile_lines.reconcile()
-                        invoice.remove_sale_commission(stmt.date)
+                    payment = self.env['account.payment'].search(['|',
+                        ('communication', '=', cheque_no_strip),
+                        ('communication', '=', cheque_no),
+                        ('amount', '=', abs(self.amount))])
+                    vals = {'bank_stmt_line_id': stmt.id}
+                    if payment and len(payment) == 1:
+                        vals['payment_ids'] = [(6, 0, payment.ids)]
+                        vals['partner_ids'] = [(6, 0, payment.mapped('partner_id').ids)]
+                    if not payment and stmt.partner_id:
+                        vals['partner_ids'] = [(6, 0, stmt.mapped('partner_id').ids)]
+                    self.env['process.returned.check'].create(vals)
         return counterpart_moves
+
+    @api.multi
+    def button_cancel_reconciliation(self):
+        for st_line in self:
+            if 'DEPOSITED ITEM RETURNED' in st_line.name:
+                process_check = self.env['process.returned.check'].search([('bank_stmt_line_id', '=', st_line.id), ('state', '!=', 'cancel')])
+                if len(process_check) > 1:
+                    raise UserError("There is more than one record in the process rerturn check")
+                elif process_check:
+                    process_check.undo_process()
+
+        return super(AccountBankStatementLine, self).button_cancel_reconciliation()
 
 AccountBankStatementLine()
 
