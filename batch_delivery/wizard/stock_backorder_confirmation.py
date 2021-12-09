@@ -10,6 +10,9 @@ class StockBackorderConfirmation(models.TransientModel):
 
     @api.one
     def _process(self, cancel_backorder=False):
+        cancel_backorder = cancel_backorder
+        if self._context.get('back_order_cancel', False):
+            cancel_backorder = False
         StockReturn = self.env['stock.picking.return']
         for pick_id in self.pick_ids:
             if pick_id.sale_id:
@@ -32,12 +35,21 @@ class StockBackorderConfirmation(models.TransientModel):
 
                 for move in pick_id.move_ids_without_package:
                     move.sale_line_id.pre_delivered_qty += move.quantity_done
-                if not cancel_backorder:
-                    order = self.env['sale.order.line'].search(
-                        [('order_id', '=', pick_id.sale_id.id), ('is_delivery', '=', True)])
-                    order.write({'product_uom_qty': order.product_uom_qty + 1})
-
+                # if not cancel_backorder:
+                #     order = self.env['sale.order.line'].search(
+                #         [('order_id', '=', pick_id.sale_id.id), ('is_delivery', '=', True)])
+                #     order.write({'product_uom_qty': order.product_uom_qty + 1})
         super(StockBackorderConfirmation, self)._process(cancel_backorder)
+        if self._context.get('back_order_cancel', False):
+            for pick_id in self.pick_ids:
+                backorder_pick = self.env['stock.picking'].search([('backorder_id', '=', pick_id.id)])
+                make2order = backorder_pick.move_ids_without_package.filtered(lambda r: r.procure_method == 'make_to_order')
+                make2stock = backorder_pick.move_ids_without_package.filtered(lambda r: r.procure_method != 'make_to_order')
+                if make2order and make2stock:
+                    make2stock.action_cancel_move()
+                elif not make2order and make2stock:
+                    backorder_pick.action_cancel()
+
 
 
 StockBackorderConfirmation()
