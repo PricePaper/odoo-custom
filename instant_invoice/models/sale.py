@@ -78,7 +78,7 @@ class SaleOrder(models.Model):
         for order in self:
             order.write({'is_creditexceed': False, 'ready_to_release': True})
             order.message_post(body="Credit Team Approved")
-            if order.release_price_hold:
+            if order.release_price_hold or not order.check_low_price():
                 order.hold_state = 'release'
                 if not self.quick_sale:
                     order.action_confirm()
@@ -95,7 +95,7 @@ class SaleOrder(models.Model):
         for order in self:
             order.write({'is_low_price': False, 'release_price_hold': True})
             order.message_post(body="Sale Team Approved")
-            if order.ready_to_release:
+            if order.ready_to_release or not order.check_credit_limit():
                 order.hold_state = 'release'
                 if not self.quick_sale:
                     order.action_confirm()
