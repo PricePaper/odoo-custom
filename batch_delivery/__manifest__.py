@@ -57,10 +57,10 @@ This module sets up the batch delivery process for price paper.
         'account_batch_payment',
         'purchase_extension'
     ],
-    'qweb': [
-
-        "static/src/xml/price_lock.xml",
-    ],
+    # 'qweb': [
+    #
+    #     "static/src/xml/price_lock.xml",
+    # ],
     'installable': True,
     'auto_install': False,
     'application': False,

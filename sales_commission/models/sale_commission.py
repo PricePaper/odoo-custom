@@ -76,6 +76,7 @@ class SaleCommission(models.Model):
         po_line.move_ids.write({'sale_line_id': sc_line.id, 'is_storage_contract': True})
         po_line.invoice_lines.write({'is_storage_contract': True})
         sc_line.order_id.write({'state': 'released', 'sc_po_done': True})
+        return True
 
     def find_invoices(self, offset=0, limit=100):
         print(limit)

@@ -9,6 +9,16 @@
             <field name="inherit_id" ref="sale.view_order_form"/>
             <field name="arch" type="xml">
 
+                <sheet position='before'>
+                    <div class="oe_form_box_info oe_text_center"
+                         attrs="{'invisible':[('batch_warning', '=', False)]}">
+                        <p attrs="{'invisible':[('batch_warning', '=', False)]}">
+                            <b><field name='batch_warning'/></b>
+                        </p>
+
+                    </div>
+                </sheet>
+
                 <xpath expr="//group[hasclass('oe_subtotal_footer')]" position="before">
                   <group attrs="{'invisible': [('cancel_reason', '=', False)]}">
                     <field name="cancel_reason" readonly='1' force_save="1"/>

@@ -32,10 +32,14 @@ var PriceLock = AbstractField.extend({
             this.$el.html('');
             return;
         }
-        this.$el.html(QWeb.render('ShowPriceLockInfo', {
-            title: info.title,
-            form: info.record
-        }));
+        let b = $("<a/>");
+        b.addClass("js_price_lock fa fa-info-circle text-success");
+        b.attr('title', info.title);
+        b.attr('role', 'button');
+        b.attr('aria-label', 'Info');
+        b.attr('price-form', info.record);
+        b.css('margin-right','5px');
+        this.$el.html(b);
     },
 
     _openPriceList: function (event) {
