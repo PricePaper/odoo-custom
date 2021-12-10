@@ -293,7 +293,7 @@ class StockPicking(models.Model):
             if picking.sale_id.invoice_status in ['no', 'invoiced']:
                 continue
             if picking.sale_id.invoice_status == 'to invoice':
-                picking.sale_id.adjust_delivery_line()
+                # picking.sale_id.adjust_delivery_line()
                 picking.sale_id.action_invoice_create(final=True)
                 picking.is_invoiced = True
             if picking.batch_id:

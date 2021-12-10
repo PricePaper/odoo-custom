@@ -20,6 +20,12 @@ class SaleOrder(models.Model):
         """
         auto save the delivery line.
         """
+        for order in self:
+            if vals.get('state', '') == 'done':
+                if not order.quick_sale and order.carrier_id:
+                    order.adjust_delivery_line()
+                else:
+                    order._remove_delivery_line()
         res = super(SaleOrder, self).write(vals)
         for order in self:
             if order.state != 'done' and ('state' not in vals or vals.get('state', '') != 'done'):
@@ -27,9 +33,6 @@ class SaleOrder(models.Model):
                     order.adjust_delivery_line()
                 else:
                     order._remove_delivery_line()
-        # for order in self:
-        #     if order.quick_sale:
-        #         order._remove_delivery_line()
 
     @api.multi
     def action_quick_sale(self):
