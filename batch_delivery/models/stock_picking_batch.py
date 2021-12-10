@@ -176,7 +176,7 @@ class StockPickingBatch(models.Model):
         self.write({'state': 'in_truck', 'date': fields.Date.today()})
         sale_orders = self.mapped('picking_ids').mapped('sale_id')
         if sale_orders:
-            sale_orders.write({'batch_warning': 'This Sales Order is already being processed for shipment'})
+            sale_orders.write({'batch_warning': 'This order has already been processed for shipment'})
             sale_orders.action_done()
 
 
