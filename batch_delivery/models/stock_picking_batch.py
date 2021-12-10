@@ -173,14 +173,16 @@ class StockPickingBatch(models.Model):
 
     @api.multi
     def set_in_truck(self):
-        self.write({'state': 'in_truck'})
+        self.write({'state': 'in_truck', 'date': fields.Date.today()})
         sale_orders = self.mapped('picking_ids').mapped('sale_id')
         if sale_orders:
-            sale_orders.write({'batch_warning': 'This Sales Order is already being processed for shipment', 'state': 'done'})
+            sale_orders.write({'batch_warning': 'This Sales Order is already being processed for shipment'})
+            sale_orders.action_done()
+
 
     @api.multi
     def set_to_draft(self):
-        self.write({'state': 'draft'})
+        self.write({'state': 'draft', 'date': False})
         sale_orders = self.mapped('picking_ids').mapped('sale_id')
         if sale_orders:
             sale_orders.write({'batch_warning': '', 'state': 'sale'})
@@ -247,6 +249,9 @@ class StockPickingBatch(models.Model):
                     'Some pickings are still waiting for goods. Please check or force their availability before setting this batch to done.'))
             # invoice creation from batch procesing
             # move every shipment to transit location(default done state of odoo picking)
+            sale_orders = batch.mapped('picking_ids').mapped('sale_id').filtered(lambda r: r.state != 'done')
+            if sale_orders:
+                sale_orders.action_done()
             for pick in pickings:
                 pick.action_make_transit()
                 invoice = pick.sale_id.invoice_ids.filtered(lambda rec: pick in rec.picking_ids)
@@ -260,6 +265,9 @@ class StockPickingBatch(models.Model):
     def done(self):
         for batch in self:
             res = []
+            sale_orders = batch.mapped('picking_ids').mapped('sale_id').filtered(lambda r: r.state != 'done')
+            if sale_orders:
+                sale_orders.action_done()
             for picking in batch.picking_ids.filtered(lambda rec: rec.state not in ['cancel']):
                 if picking.sale_id and picking.sale_id.invoice_status == 'to invoice' or not picking.is_invoiced:
                     raise UserError(_('Please create invoices for delivery order %s, to continue.') % (picking.name))

@@ -57,10 +57,9 @@ class AddSaleHistoryPoLine(models.TransientModel):
     def _onchange_new_qty(self):
         vendor = self.parent_id.vendor_id
         if vendor:
-            seller_record = self.product_id.seller_ids.filtered(lambda l: l.name.id == vendor.id)
-            if seller_record and self.new_qty < seller_record.min_qty:
+            if self.new_qty < self.min_qty:
                 raise ValidationError(_('In order to purchase this product from this vendor you need to add a quantity '
-                                        'greater than or equals to {0}'.format(seller_record.min_qty)))
+                                        'greater than or equals to {0}'.format(self.min_qty)))
 
     @api.depends('product_id')
     def _compute_op_min_max_days(self):
