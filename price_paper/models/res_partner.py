@@ -187,7 +187,10 @@ class ResPartner(models.Model):
         elif vals.get('parent_id', False):
             if not vals.get('customer_code', False) and vals.get('parent_id', False):
                 parent = self.env['res.partner'].browse(vals.get('parent_id', False))
-                child_codes = parent.child_ids.mapped('customer_code')
+                domain = ['|', ('active', '=', True), ('active', '=', False)]
+                if parent.customer_code:
+                    domain = ['|', ('active', '=', True), ('active', '=', False), ('customer_code', 'ilike', parent.customer_code)]
+                child_codes = self.env['res.partner'].sudo().search(domain).mapped('customer_code')
                 count = 1
                 while parent:
                     suffix = str(count).zfill(3)
