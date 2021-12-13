@@ -26,7 +26,7 @@
 
                 <button name="confirm_picking" position="after">
 
-                    <button name="create_batch_invoice" string="Create Invoice"
+                    <button name="create_batch_invoice" string="Create Invoice(s)"
                             type="object" class="oe_highlight"
                             attrs="{'invisible': ['|', ('state', 'not in', ['in_progress']), ('to_invoice', '=', False)]}"/>
                     <field name="invoice_ids" invisible="1"/>
@@ -37,7 +37,7 @@
                     <button name="print_driver_spreadsheet" string="Print Drivers Document" type="object"
                             class="oe_highlight"
                             attrs="{'invisible': ['|', ('invoice_ids', '=', []), ('state', 'not in', ['in_progress'])]}"/>
-                    <button name="set_in_truck" string="Move to In Progres"
+                    <button name="set_in_truck" string="Move to In Progress"
                             type="object" class="oe_highlight"
                             states='draft'/>
                     <button name="set_to_draft" string="Move to Draft"

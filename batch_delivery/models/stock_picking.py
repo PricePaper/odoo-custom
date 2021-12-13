@@ -323,7 +323,7 @@ class StockPicking(models.Model):
                 if batch:
                     picking.sale_id.write({'delivery_date': batch.date})
                     if batch.state in ('in_truck', 'in_progress'):
-                        picking.mapped('sale_id').write({'batch_warning': 'This Sales Order is already being processed for shipment', 'state': 'done'})
+                        picking.mapped('sale_id').write({'batch_warning': 'This order has already been processed for shipment, 'state': 'done'})
                     if picking.is_invoiced:
                         invoice = picking.sale_id.invoice_ids.filtered(lambda rec: picking in rec.picking_ids)
                         invoice.write({'date_invoice': batch.date})
