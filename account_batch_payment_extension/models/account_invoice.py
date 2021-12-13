@@ -88,7 +88,7 @@ class Accountinvoice(models.Model):
             if account and account.get('income', ''):
                 account = account['income']
             line_vals = [(0, 0, {
-                'name': 'Check Bounce Fine',
+                'name': 'Returned check service fee',
                 'account_id': account.id,
                 'product_id': check_bounce_product.id,
                 'price_unit': check_bounce_product.cost,
