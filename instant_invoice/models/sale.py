@@ -21,7 +21,7 @@ class SaleOrder(models.Model):
         auto save the delivery line.
         """
         for order in self:
-            if vals.get('state', '') == 'done':
+            if vals.get('state', '') == 'done' and not order.state == 'done':
                 if not order.quick_sale and order.carrier_id:
                     order.adjust_delivery_line()
                 else:
