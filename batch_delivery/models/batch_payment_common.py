@@ -54,7 +54,7 @@ class BatchPaymentCommon(models.Model):
             check_lines = batch.cash_collected_lines.filtered(lambda r:r.payment_method_id.code in ('check_printing_in', 'batch_payment'))
             if check_lines and float_round(sum(check_lines.mapped('amount')), precision_digits=2) != float_round(batch.cheque_amount, precision_digits=2):
                 msg += 'Check Amount mismatch.\n'
-            cash_lines = batch.cash_collected_lines.filtered(lambda r:r.payment_method_id.code == 'manual')
+            cash_lines = batch.cash_collected_lines.filtered(lambda r:r.payment_method_id.code in ('manual', 'housecash'))
             if cash_lines and float_round(sum(cash_lines.mapped('amount')), precision_digits=2) != float_round(batch.cash_amount, precision_digits=2):
                 msg += 'Cash Amount mismatch.\n'
             if batch.pending_amount:
@@ -112,23 +112,6 @@ class BatchPaymentCommon(models.Model):
     @api.multi
     def register_payments(self):
         for batch in self:
-            msg = ''
-            cc_lines = batch.cash_collected_lines.filtered(lambda r:r.payment_method_id.code == 'credit_card')
-            if cc_lines and sum(cc_lines.mapped('amount')) != batch.card_amount:
-                msg += 'Credit card Amount mismatch.\n'
-            check_lines = batch.cash_collected_lines.filtered(lambda r:r.payment_method_id.code in ('check_printing_in', 'batch_payment'))
-            if check_lines and sum(check_lines.mapped('amount')) != batch.cheque_amount:
-                msg += 'Check Amount mismatch.\n'
-            cash_lines = batch.cash_collected_lines.filtered(lambda r:r.payment_method_id.code == 'manual')
-            print(cash_lines)
-            if cash_lines and sum(cash_lines.mapped('amount')) != batch.cash_amount:
-                msg += 'Cash Amount mismatch.\n'
-            if msg:
-                raise UserError(_(msg))
-            if batch.pending_amount:
-                raise UserError(_('Total Amount mismatch'))
-            if float_round(batch.cheque_amount + batch.cash_amount + batch.card_amount, precision_digits=2) != float_round(batch.actual_returned, precision_digits=2):
-                raise UserError(_('Total amount and sum of Cash,Check,Credit Card does not match'))
             if not batch.actual_returned:
                 raise UserError(_('Please properly enter the returned amount'))
             if not batch.cash_collected_lines:
