@@ -28,7 +28,9 @@ class ProductTemplate(models.Model):
         """
         accounts = super(ProductTemplate, self)._get_product_accounts()
         accounts.update({
-            'sc_liability_out': self.categ_id.sc_stock_liability_account_id
+            'sc_liability_out': self.categ_id.sc_stock_liability_account_id,
+            'sc_stock_account': self.categ_id.sc_stock_valuation_account_id,
+            'valuation_account': self.categ_id.property_stock_valuation_account_id
         })
         return accounts
 
@@ -137,6 +139,7 @@ class ProductProduct(models.Model):
         :param Model fiscal_position: a account.fiscal.position record from the order of the product being sold
         :param Model account_analytic: a account.account.analytic record from the line of the product being sold
         """
+        res = []
         if not self._context.get('sc_move', False):
             return super(ProductProduct, self)._anglo_saxon_sale_move_lines(
                 name, product, uom, qty,
@@ -158,8 +161,47 @@ class ProductProduct(models.Model):
                 #if it is storage order reverse the move lines
                 dacc = accounts['stock_output'].id
                 cacc = accounts['sc_liability_out'].id
+
+
+            cval_acc = False
+            dval_acc = False
+            if self._context.get('sc_move', '') != 'sc_order':
+                if not accounts['sc_stock_account']:
+                    raise UserError(
+                        _('Cannot find a SC Stock Valuation Account in product category: %s' % product.categ_id.name))
+                cval_acc = accounts['sc_stock_account'].id
+                dval_acc = accounts['valuation_account'].id
+
+            if cval_acc and dval_acc:
+                res.append({
+                        'type': 'src',
+                        'name': name[:64],
+                        'price_unit': price_unit,
+                        'quantity': qty,
+                        'price': price_unit * qty,
+                        'currency_id': currency and currency.id,
+                        'amount_currency': amount_currency,
+                        'account_id': dval_acc,
+                        'product_id': product.id,
+                        'uom_id': uom.id,
+                    })
+                res.append({
+                        'type': 'src',
+                        'name': name[:64],
+                        'price_unit': price_unit,
+                        'quantity': qty,
+                        'price': -1 * price_unit * qty,
+                        'currency_id': currency and currency.id,
+                        'amount_currency': -1 * amount_currency,
+                        'account_id': cval_acc,
+                        'product_id': product.id,
+                        'uom_id': uom.id,
+                        'account_analytic_id': account_analytic and account_analytic.id,
+                        'analytic_tag_ids': analytic_tags and analytic_tags.ids and [
+                            (6, 0, analytic_tags.ids)] or False,
+                    })
             if dacc and cacc:
-                return [
+                res.extend([
                     {
                         'type': 'src',
                         'name': name[:64],
@@ -188,8 +230,8 @@ class ProductProduct(models.Model):
                         'analytic_tag_ids': analytic_tags and analytic_tags.ids and [
                             (6, 0, analytic_tags.ids)] or False,
                     },
-                ]
-        return []
+                ])
+        return res
 
     @api.multi
     @api.depends('qty_available', 'orderpoint_ids.product_max_qty', 'orderpoint_ids.product_min_qty')

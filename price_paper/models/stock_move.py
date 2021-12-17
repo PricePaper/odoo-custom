@@ -42,8 +42,20 @@ class StockMove(models.Model):
                 raise UserError(_('Cannot find a SC Stock Liability Account in product category: %s' % self.product_id.categ_id.name))
             if not valuation_account:
                 raise UserError(_('Cannot find a SC Stock Valuation Account in product category: %s' % self.product_id.categ_id.name))
+            sc_account = self.product_id.categ_id.sc_stock_liability_account_id
+            if not sc_account:
+                raise UserError(_('Cannot find a SC Stock Liability Account in product category: %s' % self.product_id.categ_id.name))
+            if not valuation_account:
+                raise UserError(_('Cannot find a SC Stock Valuation Account in product category: %s' % self.product_id.categ_id.name))
 
-            return (res[0], sc_account.id, sc_account.id, valuation_account.id)
+
+            valuation_account = valuation_account.id
+            sc_account = sc_account.id
+            if self.picking_code == 'incoming' and self.purchase_line_id:
+                valuation_account = res[3]
+                sc_account = res[1]
+
+            return (res[0], sc_account, sc_account, valuation_account)
 
         if self._context.get('from_inv_adj', False) or self._context.get('is_scrap', False):
             acc_src = False
