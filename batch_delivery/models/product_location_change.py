@@ -63,6 +63,7 @@ class ProductTemplate(models.Model):
                 to_do_move._action_assign_reset_qty()
                 if to_do_move.is_transit:
                     move.quantity_done = move.reserved_availability
+            rec.is_done = True
         return True
 
 
