@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_product_location_change_tree" model="ir.ui.view">
+            <field name="name">product.location.change</field>
+            <field name="model">product.location.change</field>
+            <field name="arch" type="xml">
+                <tree string="Product Location Change">
+                  <field name="product_id" required='1'/>
+                  <field name="source_location_id" readonly='1' required='1'/>
+                  <field name="dest_location_id"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="view_product_location_change_search" model="ir.ui.view">
+            <field name="name">product.location.change</field>
+            <field name="model">product.location.change</field>
+            <field name="arch" type="xml">
+                <search string="Product Location Change">
+                    <field name="product_id" string="Product"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="view_product_location_change_form" model="ir.ui.view">
+            <field name="name">product.location.change</field>
+            <field name="model">product.location.change</field>
+            <field name="arch" type="xml">
+                <form string="Product Location Change">
+                    <header>
+                        <field name="is_done" />
+                        <button name="action_change" attrs="{'invisible': [('is_done', '=', True)]}" string="Process" type="object" class="oe_highlight" groups="base.group_user"/>
+                    </header>
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="product_id" required='1'/>
+                                <field name="source_location_id" readonly='1' required='1' force_save='1'/>
+                                <field name="dest_location_id"/>
+                            </group>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_product_location_change" model="ir.actions.act_window">
+            <field name="name">product.location.change</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">product.location.change</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="help" type="html">
+                <p>
+                    No records Found.
+                </p>
+            </field>
+        </record>
+
+        <menuitem id="product_location_change_menu"
+          name="Change Product Location"
+          parent="stock.menu_stock_warehouse_mgmt"
+          sequence="7"
+          action="action_product_location_change"
+          groups="stock.group_stock_manager,stock.group_stock_user"/>
+    </data>
+</odoo>
