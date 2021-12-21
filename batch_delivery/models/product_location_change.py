@@ -2,23 +2,26 @@
 
 from odoo import models, fields, api
 
-class ProductTemplate(models.Model):
+class ProductTemplate(models.TransientModel):
     _name = 'product.location.change'
+    _description = 'Product Location Change'
 
     product_id = fields.Many2one('product.product', string='Product')
     source_location_id = fields.Many2one(
         'stock.location', "Source Location", copy=False)
     dest_location_id = fields.Many2one(
         'stock.location', "Destination Location")
-    is_done = fields.Boolean('Done', default=False, copy=False)
 
-    @api.onchange('product_id')
-    def _onchange_product_id(self):
-        if self.product_id:
-            self.source_location_id = self.product_id.property_stock_location
-        else:
-            self.source_location_id = False
+    @api.model
+    def default_get(self, fields):
+        res = super(ProductTemplate, self).default_get(fields)
 
+        product = self.env[self._context['active_model']].browse(self._context['active_id'])
+        if 'product_id' in fields and 'product_id' not in res:
+            res['product_id'] = product.id
+        if 'source_location_id' in fields and 'source_location_id' not in res:
+            res['source_location_id'] = product.property_stock_location.id
+        return res
 
     @api.multi
     def action_change(self):
@@ -63,7 +66,6 @@ class ProductTemplate(models.Model):
                 to_do_move._action_assign_reset_qty()
                 if to_do_move.is_transit:
                     move.quantity_done = move.reserved_availability
-            rec.is_done = True
         return True
 
 
