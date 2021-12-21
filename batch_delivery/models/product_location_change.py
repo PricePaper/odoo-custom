@@ -65,7 +65,7 @@ class ProductTemplate(models.TransientModel):
                 to_do_move.qty_update = qty
                 to_do_move._action_assign_reset_qty()
                 if to_do_move.is_transit:
-                    move.quantity_done = move.reserved_availability
+                    to_do_move.quantity_done = to_do_move.reserved_availability
         return True
 
 
