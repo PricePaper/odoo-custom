@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <template id="portal_my_purchase_order" inherit_id="purchase.portal_my_purchase_order">
+    <xpath expr="//div[@class='card-body']/div[2]/div[2]" position="replace">
+      <div class="col-lg-2 text-right" t-if="order.state not in ['draft', 'sent']">
+        <strong>Unit Price</strong>
+      </div>
+    </xpath>
+    <xpath expr="//div[@class='card-body']/div[2]/div[4]" position="replace">
+      <div class="col-lg-2 text-right" t-if="order.state not in ['draft', 'sent']">
+        <strong>Subtotal</strong>
+      </div>
+    </xpath>
+    <xpath expr="//div[@class='card-body']/t/div/div[3]" position="replace">
+      <div class="col-lg-2 text-right" t-if="order.state not in ['draft', 'sent']">
+        <span t-field="ol.price_unit" t-options='{"widget": "monetary", "display_currency": order.currency_id}'/>
+      </div>
+    </xpath>
+    <xpath expr="//div[@class='card-body']/t/div/div[5]" position="replace">
+      <div class="col-lg-2 text-right" t-if="order.state not in ['draft', 'sent']">
+        <span t-field="ol.price_subtotal" t-options='{"widget": "monetary", "display_currency": order.currency_id}'/>
+      </div>
+    </xpath>
+
+    <xpath expr="//div[@class='card-body']/div[3]" position="replace">
+        <div class="row" t-if="order.state not in ['draft', 'sent']">
+          <div class="col-lg-12 text-right">
+            <div class="row">
+              <div class="col-lg-10 text-right">
+                Untaxed Amount:
+              </div>
+              <div class="col-lg-2 text-right">
+                <span t-field="order.amount_untaxed" t-options='{"widget": "monetary", "display_currency": order.currency_id}'/>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-lg-10 text-right">
+                Taxes:
+              </div>
+              <div class="col-lg-2 text-right">
+                <span t-field="order.amount_tax" t-options='{"widget": "monetary", "display_currency": order.currency_id}'/>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-lg-10 text-right">
+                <strong>Total:</strong>
+              </div>
+              <div class="col-lg-2 text-right">
+                <strong><span t-field="order.amount_total" t-options='{"widget": "monetary", "display_currency": order.currency_id}'/></strong>
+              </div>
+            </div>
+          </div>
+        </div>
+    </xpath>
+
+  </template>
+</odoo>
