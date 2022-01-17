@@ -68,7 +68,7 @@
                         </group>
                         <separator string="Payments"/>
                         <field name="payment_ids" required='1' attrs="{'readonly':[('state', 'in', ('done', 'cancel'))]}"
-                                 ptions="{'no_create': True}" force_save="1"
+                                 options="{'no_create': True}" force_save="1"
                                  context="{'from_return_check_process': True}"
                                  domain="['|', '&amp;', '&amp;', '&amp;', '&amp;', ('payment_type', '=', 'inbound'), ('partner_id', '=', partner_ids),
                                      ('payment_method_id.code', 'in', ('check_printing_in', 'batch_payment')),

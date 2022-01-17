@@ -173,7 +173,7 @@ class StockPickingBatch(models.Model):
 
     @api.multi
     def set_in_truck(self):
-        self.write({'state': 'in_truck', 'date': fields.Date.today()})
+        self.write({'state': 'in_truck'})
         sale_orders = self.mapped('picking_ids').mapped('sale_id')
         if sale_orders:
             sale_orders.write({'batch_warning': 'This order has already been processed for shipment'})
@@ -182,7 +182,7 @@ class StockPickingBatch(models.Model):
 
     @api.multi
     def set_to_draft(self):
-        self.write({'state': 'draft', 'date': False})
+        self.write({'state': 'draft'})
         sale_orders = self.mapped('picking_ids').mapped('sale_id')
         if sale_orders:
             sale_orders.write({'batch_warning': '', 'state': 'sale'})
@@ -233,6 +233,9 @@ class StockPickingBatch(models.Model):
 
             if not self.route_id:
                 raise UserError(_('Route should be assigned before confirmation.'))
+
+            if not self.date:
+                raise UserError(_('Scheduled date should be assigned before confirmation.'))
             batch.truck_driver_id.is_driver_available = False
             # fetch all unassigned pickings and try to assign
             unassigned_pickings = batch.mapped('picking_ids').filtered(

@@ -23,6 +23,7 @@ Custom module implemented for Purchase extension.
         'views/report_template.xml',
         'views/report_pdf_vendor_product.xml',
         'views/res_company.xml',
+        'views/portal_templates.xml',
         'views/purchase_order_line.xml',
         'views/account_vendor_bill.xml',
         'views/payment_term.xml',

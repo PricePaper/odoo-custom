@@ -82,12 +82,12 @@ class ProcessReturnedCheck(models.Model):
 
     def undo_process(self):
         for payment in self.payment_ids:
+            payment.mapped('move_line_ids').remove_move_reconcile()
             if payment.old_invoice_ids:
                 old_invoice_not_open = payment.old_invoice_ids.filtered(lambda r: r.state != 'open')
                 if old_invoice_not_open:
                     raise UserError("Invoice not in open state \n %s" %
                                     ', '.join(old_invoice_not_open.mapped('number')))
-                payment.mapped('move_line_ids').remove_move_reconcile()
                 credit_aml = payment.mapped('move_line_ids').filtered(lambda r: not r.reconciled and r.account_id.internal_type in ('payable', 'receivable'))
                 payment.old_invoice_ids.register_payment(credit_aml)
                 payment.old_invoice_ids.remove_bounced_cheque_commission()
