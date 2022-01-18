@@ -187,6 +187,7 @@ class AccountInvoice(models.Model):
         if len(self.invoice_line_ids) == 1 and self.invoice_line_ids[0].quantity < 0:
             return False
         commission_rec = self.env['sale.commission'].search([('invoice_id', '=', self.id), ('is_paid', '=', False)])
+
         if not commission_rec and self.type in ['out_invoice', 'out_refund']:
             profit = self.gross_profit
             # commission_rule = self.partner_id.commission_percentage_ids.filtered(lambda r:r.sale_person_id and r.sale_person_id in self.sales_person_ids)
@@ -215,7 +216,7 @@ class AccountInvoice(models.Model):
                     'invoice_amount': self.amount_total,
                     'commission_date': self.date_invoice and self.date_invoice
                 }
-                commission_rec = self.env['sale.commission'].create(vals)
+                commission_rec |= self.env['sale.commission'].create(vals)
         return commission_rec
 
 
