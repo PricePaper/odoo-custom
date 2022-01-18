@@ -18,5 +18,6 @@ from . import stock_picking_return
 from . import stock_quant
 from . import stock_scrap
 from . import batch_payment_common
+from . import product_location_change
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
