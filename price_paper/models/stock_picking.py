@@ -97,9 +97,12 @@ class StockRule(models.Model):
         domain = self._make_po_get_domain(values, partner)
         if domain in cache:
             po = cache[domain]
-
         else:
             po = self.env['purchase.order'].sudo().search([dom for dom in domain])
+            if order_point:
+                po = po.filtered(lambda r:r.sale_order_count == 0)
+            if procurement_group.sale_id:
+                po = po.filtered(lambda r:r.sale_order_count > 0 and r.origin and origin in r.origin.split(', '))
             po = po[0] if po else False
             cache[domain] = po
         if order_point and po and not po.sale_order_count > 0:

@@ -1525,6 +1525,22 @@ class SaleOrderLine(models.Model):
         for line in self:
             if vals.get('price_unit') and line.order_id.state == 'sale':
                 line.update_price_list()
+            if ('note' in vals or 'note_type' in vals) and line.note_type == 'permanant':
+                note = self.env['product.notes'].search([
+                    ('product_id', '=', line.product_id.id),
+                     ('partner_id', '=', line.order_id.partner_id.id),
+                    ('expiry_date', '>', date.today())
+                ], limit=1)
+                if not note:
+                    self.env['product.notes'].create({
+                        'product_id': line.product_id.id,
+                        'partner_id': line.order_id.partner_id.id,
+                        'notes': line.note,
+                        'expiry_date': line.note_expiry_date
+                    })
+                else:
+                    note.notes = line.note
+                    note.expiry_date = line.note_expiry_date
         return res
 
     @api.multi

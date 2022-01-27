@@ -33,15 +33,6 @@ class Reportcommission_audit(models.AbstractModel):
                         commission = 0
                         profit = invoice.gross_profit
                         if rec.based_on in ['profit', 'profit_delivery']:
-                            if invoice.payment_term_id.due_days:
-                                days = invoice.payment_term_id.due_days
-                                if invoice.paid_date and invoice.paid_date > invoice.date_invoice + relativedelta(days=days):
-                                    profit += invoice.amount_total * (invoice.payment_term_id.discount_per / 100)
-                            payment = invoice.payment_ids.filtered(lambda r: r.payment_method_id.code == 'credit_card')
-                            if payment and invoice.partner_id.payment_method != 'credit_card':
-                                profit -= invoice.amount_total * 0.03
-                            if not payment and invoice.partner_id.payment_method == 'credit_card':
-                                profit += invoice.amount_total * 0.03
                             if profit <= 0:
                                 continue
                             commission = profit * (rec.percentage / 100)
