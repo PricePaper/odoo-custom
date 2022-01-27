@@ -42,13 +42,19 @@ class StockMoveLine(models.Model):
         result = super(StockMoveLine, self).write(vals)
         for line in self:
             sale_line = line.move_id.sale_line_id
-
             if 'qty_done' in vals and sale_line:
-                qty = vals['qty_done']
+                qty = 0
                 invoice_lines = sale_line.invoice_lines.filtered(
                     lambda rec: rec.invoice_id.state != 'cancel' and line.move_id in rec.stock_move_ids)
-                sale_line.qty_delivered = qty
+                # sale_line.qty_delivered = qty
+                sale_line._compute_qty_delivered()
+                qty = sale_line.qty_delivered - sale_line.qty_invoiced
+
                 if invoice_lines:
+                    if qty > 0:
+                        qty = sum(invoice_lines.mapped('quantity')) + abs(qty)
+                    if qty < 0:
+                        qty = sum(invoice_lines.mapped('quantity')) - abs(qty)
                     invoice_lines.write({'quantity': qty})
                     invoice_lines.mapped('invoice_id').compute_taxes()
                 else:

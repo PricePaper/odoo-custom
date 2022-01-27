@@ -262,7 +262,8 @@ class StockPicking(models.Model):
                 for line in pick.move_lines:
                     line.quantity_done = line.reserved_availability
                     if line.sale_line_id:
-                        line.sale_line_id.qty_delivered = line.reserved_availability
+                        # line.sale_line_id.qty_delivered = line.reserved_availability
+                        line.sale_line_id._compute_qty_delivered()
                 if pick.batch_id:
                     pick.sale_id.write({'delivery_date': pick.batch_id.date})
     # @api.multi
