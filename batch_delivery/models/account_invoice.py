@@ -59,7 +59,8 @@ class AccountInvoice(models.Model):
         if all([inv.type in ('in_invoice', 'in_refund') for inv in self]) and all([inv.state == 'draft' for inv in self]):
             return super(AccountInvoice, self).action_invoice_cancel()
         for invoice in self:
-            if invoice.mapped('picking_ids').filtered(lambda r:r.state in ('in_transit', 'done')):
+            if invoice.mapped('picking_ids').filtered(lambda r:r.state in ('in_transit', 'done'))\
+                and not (self.env.user.has_group('base.group_no_one') and self.env.user.has_group('base.group_system')):
                 raise ValidationError(_('Cannot perform this action, DO is in transit or done state'))
         if not self.env.user.has_group('account.group_account_manager') or not self.env.user.has_group('sales_team.group_sale_manager'):
             raise ValidationError(_('You dont have permissions to cancel an open invoice. Only Accounting adviser have the permission.'))
