@@ -33,8 +33,8 @@
              <field name="arch" type="xml">
                  <field name="property_stock_location" position="replace">
                      <field name="property_stock_location"
-                         attrs="{'readonly':[('valuation','=','real_time')]}"
-                         class="float-left"/>
+                         attrs="{'readonly':[('property_stock_location','!=', False)]}"
+                         class="float-left" force_save='1' />
                      <div name="update_product_location" class="col-lg-2">
                          <button string="Update Location" type="action"
                          name="%(action_product_location_change)d"
