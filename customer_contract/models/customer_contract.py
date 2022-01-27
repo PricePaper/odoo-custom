@@ -48,10 +48,11 @@ class CustomerContractLine(models.Model):
 
 
     @api.multi
-    @api.depends('sale_line_ids.product_uom_qty', 'product_qty')
+    @api.depends('sale_line_ids.product_uom_qty', 'product_qty', 'sale_line_ids.order_id.state')
     def _compute_remaining_qty(self):
         for line in self:
-            line.remaining_qty = line.product_qty - sum(line.sale_line_ids.mapped('product_uom_qty'))
+            line.remaining_qty = line.product_qty - sum(line.sale_line_ids.filtered(lambda r: r.order_id.state != 'cancel').mapped('product_uom_qty'))
+
 
     @api.multi
     def name_get(self):

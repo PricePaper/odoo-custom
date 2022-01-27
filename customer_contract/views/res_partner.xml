@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+    <data>
+
+        <record id="res_partner_inherit_deviated_cost" model="ir.ui.view">
+            <field name="name">res.partner.deviated_cost</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//notebook/page[@name='sales_purchases']/group/group/field[@name='customer']"
+                       position="after">
+                    <field name="customer_contract_ids" widget="many2many_tags"
+                           domain="[('expiration_date','&gt;',((context_today()).strftime('%Y-%m-%d')+' '+'23:59:59'))]"
+                           attrs="{'invisible':[('parent_id', '!=', False)]}"/>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>
