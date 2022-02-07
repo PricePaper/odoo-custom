@@ -5,6 +5,24 @@
             <field name="model">purchase.order</field>
             <field name="inherit_id" ref="purchase.purchase_order_form"/>
             <field name="arch" type="xml">
+                <xpath expr="//header/field[@name='state']" position="attributes">
+                    <attribute name="statusbar_visible">draft,sent,in_progress,purchase</attribute>
+                </xpath>
+                <!-- <xpath expr="//button[@name='button_confirm'][2]" position="attributes">
+                    <attribute name="states">draft,in_progress</attribute>
+                </xpath> -->
+                <xpath expr="//button[@name='button_cancel']" position="attributes">
+                    <attribute name="states">draft,in_progress,to approve,sent,purchase</attribute>
+                </xpath>
+                <xpath expr="//button[@name='print_quotation'][1]" position="attributes">
+                    <attribute name="states">draft,in_progress</attribute>
+                </xpath>
+                <xpath expr="//button[@name='action_rfq_send'][1]" position="attributes">
+                    <attribute name="states">draft,in_progress</attribute>
+                </xpath>
+                <xpath expr="//button[@name='button_confirm']" position="before">
+                    <button name="action_in_progress" type="object" states="draft" string="In Progress" class="oe_highlight"/>
+                </xpath>
                 <field name='payment_term_id' position='attributes'>
                     <attribute name='domain'>[('order_type', '=', 'purchase')]</attribute>
                 </field>
@@ -99,5 +117,14 @@
             </xpath>
         </field>
     </record>
-    </data>
+    <record id="view_purchase_order_extension_filter" model="ir.ui.view">
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.view_purchase_order_filter"/>
+        <field name="arch" type="xml">
+          <xpath expr="//filter[@name='draft']" position="attributes">
+              <attribute name="domain">[('state','in',('draft','sent','in_progress', 'to approve'))]</attribute>
+          </xpath>
+        </field>
+    </record>
+  </data>
 </odoo>

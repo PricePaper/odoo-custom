@@ -22,6 +22,19 @@ class PurchaseOrder(models.Model):
     state = fields.Selection(selection_add=[('received', 'Received')])
     pickup_address_id = fields.Many2one('res.partner', string="Delivery Address")
     sale_order_count = fields.Integer(string="Sale Order Count", readonly=True, compute='_compute_sale_order_count')
+    state = fields.Selection([
+        ('draft', 'RFQ'),
+        ('in_progress', 'In Progress RFQ'),
+        ('sent', 'RFQ Sent'),
+        ('to approve', 'To Approve'),
+        ('purchase', 'Purchase Order'),
+        ('done', 'Locked'),
+        ('cancel', 'Cancelled')
+    ], string='Status', readonly=True, index=True, copy=False, default='draft', track_visibility='onchange')
+
+    @api.multi
+    def action_in_progress(self):
+        self.write({'state': 'in_progress'})
 
     @api.multi
     @api.depends('order_line.sale_order_id')
