@@ -19,13 +19,13 @@ class PurchaseOrder(models.Model):
     total_qty = fields.Float(string="Total Order Quantity", compute='_compute_total_weight_volume')
     vendor_delay = fields.Integer(related='partner_id.delay', string="Vendor Lead Time", readonly=True)
     vendor_order_freq = fields.Integer(related='partner_id.order_freq', string="Vendor Order Frequency", readonly=True)
-    state = fields.Selection(selection_add=[('received', 'Received')])
     pickup_address_id = fields.Many2one('res.partner', string="Delivery Address")
     sale_order_count = fields.Integer(string="Sale Order Count", readonly=True, compute='_compute_sale_order_count')
     state = fields.Selection([
         ('draft', 'RFQ'),
         ('in_progress', 'In Progress RFQ'),
         ('sent', 'RFQ Sent'),
+        ('received', 'Received'),
         ('to approve', 'To Approve'),
         ('purchase', 'Purchase Order'),
         ('done', 'Locked'),
