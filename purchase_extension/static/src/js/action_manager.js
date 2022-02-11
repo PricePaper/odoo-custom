@@ -23,7 +23,8 @@ ActionManager.include({
     },
     _handleAction: function (action, options) {
         if (action.report_type === 'xlsx') {
-            document.querySelector('.close').click();
+            if (document.querySelector('.close')) {
+              document.querySelector('.close').click();}
             return this._executexlsxReportDownloadAction(action, options);
 
         }
