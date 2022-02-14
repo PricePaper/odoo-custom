@@ -123,6 +123,8 @@ class AccountInvoice(models.Model):
                 elif rule_id.based_on == 'invoice':
                     amount = self.amount_total
                     commission = amount * (rule_id.percentage / 100)
+            if self.type == 'out_refund':
+                commission = -commission
             line.write({'commission': commission})
             if self._context.get('is_cancelled') and commission < 0:
                 line.is_cancelled = True
