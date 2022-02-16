@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_product_location_change_form" model="ir.ui.view">
+            <field name="name">product.location.change</field>
+            <field name="model">product.location.change</field>
+            <field name="arch" type="xml">
+                <form string="Product Location Change">
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="product_id" readonly='1' required='1' force_save='1'/>
+                                <field name="source_location_id" readonly='1' required='1' force_save='1'/>
+                                <field name="dest_location_id"/>
+                            </group>
+                        </group>
+                        <footer>
+                            <button name="action_change" string="Change Location" type="object" class="btn-primary"/>
+                            <button string="Cancel" class="btn-secondary" special="cancel" />
+                        </footer>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_product_location_change" model="ir.actions.act_window">
+            <field name="name">product.location.change</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">product.location.change</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="view_product_location_change_form"/>
+            <field name="target">new</field>
+        </record>
+
+    </data>
+</odoo>

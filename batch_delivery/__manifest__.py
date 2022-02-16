@@ -20,6 +20,7 @@ This module sets up the batch delivery process for price paper.
         'wizard/so_cancel_reason.xml',
         'wizard/picking_full_return_wizard_view.xml',
         'wizard/stock_backorder_confirmation_views.xml',
+        'views/product_location_change.xml',
         'views/truck_route_view.xml',
         'views/truck_driver_view.xml',
         'views/delivery_carrier_view.xml',
@@ -44,7 +45,8 @@ This module sets up the batch delivery process for price paper.
         'views/website_asset.xml',
         'security/price_paper_security.xml',
         'security/ir.model.access.csv',
-        "views/batch_payment_common.xml"
+        "views/batch_payment_common.xml",
+
     ],
     'depends': [
         'price_paper',

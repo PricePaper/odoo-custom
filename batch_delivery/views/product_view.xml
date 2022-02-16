@@ -26,6 +26,28 @@
             </field>
          </record>
 
+         <record model="ir.ui.view" id="product_normal_stock_loc_form_view">
+             <field name="name">view.product.normal.stock.loc.form</field>
+             <field name="model">product.product</field>
+             <field name="inherit_id" ref="stock_product_location.product_normal_stock_loc_form_view"/>
+             <field name="arch" type="xml">
+                 <field name="property_stock_location" position="replace">
+                     <field name="property_stock_location"
+                         attrs="{'readonly':[('property_stock_location','!=', False)]}"
+                         class="float-left" force_save='1'/>
+                     <div name="update_product_location" class="col-lg-2">
+                         <button string="Update Location" type="action"
+                         name="%(action_product_location_change)d"
+                         attrs="{'invisible':[]}"
+                         class="oe_link oe_read_only"/>
+                     </div>
+                 </field>
+             </field>
+         </record>
+
+
+
+
         <record id="product_form_view_procurement_button_form_view_inherited" model="ir.ui.view">
             <field name="name">product.product.location</field>
             <field name="model">product.product</field>

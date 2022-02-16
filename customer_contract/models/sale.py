@@ -46,6 +46,8 @@ class SaleOrderLine(models.Model):
     def contract_line_id_change(self):
         if self.customer_contract_line_id:
             self.product_id = self.customer_contract_line_id.product_id
+            self.product_uom = self.customer_contract_line_id.product_id.uom_id
+            self.price_unit = self.customer_contract_line_id.price
         return {
             'domain': {'customer_contract_line_id': [
                 ('contract_id.expiration_date', '>', fields.Datetime.now()),

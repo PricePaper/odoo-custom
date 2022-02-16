@@ -97,6 +97,7 @@ class StockRule(models.Model):
         domain = self._make_po_get_domain(values, partner)
         if domain in cache:
             po = cache[domain]
+
         else:
             po = self.env['purchase.order'].sudo().search([dom for dom in domain])
             if order_point:
@@ -105,9 +106,7 @@ class StockRule(models.Model):
                 po = po.filtered(lambda r:r.sale_order_count > 0 and r.origin and origin in r.origin.split(', '))
             po = po[0] if po else False
             cache[domain] = po
-        if order_point and po and not po.sale_order_count > 0:
-            return super(StockRule, self)._run_buy(product_id, product_qty, product_uom, location_id, name, origin, values)
-        if not po or po and origin not in po.origin.split(', '):
+        if not po:
             vals = self._prepare_purchase_order(product_id, product_qty, product_uom, origin, values, partner)
             company_id = values.get('company_id') and values['company_id'].id or self.env.user.company_id.id
             po = self.env['purchase.order'].with_context(force_company=company_id).sudo().create(vals)
