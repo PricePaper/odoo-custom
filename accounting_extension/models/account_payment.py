@@ -580,7 +580,7 @@ class AccountPayment(models.Model):
             else:
                 amount_paid = abs(sum(invoice_payment_reconcile.mapped('amount')))
 
-            result.update({'amount_paid': formatLang(self.env, (invoice_sign * amount_paid) - discount, currency_obj=invoice.currency_id)})
+            result.update({'amount_paid': formatLang(self.env, (invoice_sign * amount_paid), currency_obj=invoice.currency_id)})
         return result
 
 
