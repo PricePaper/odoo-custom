@@ -58,7 +58,7 @@ class SaleOrder(models.Model):
     sc_child_order_count = fields.Integer(compute='_compute_sc_child_order_count')
     delivery_cost = fields.Float(string='Estimated Delivery Cost', readonly=True, copy=False)
     po_count = fields.Integer(compute='_compute_po_count', readonly=True)
-    active = fields.Boolean(track_visibility='onchange')
+    active = fields.Boolean(track_visibility='onchange', default=True)
 
     @api.multi
     def action_view_purchase_orders(self):
